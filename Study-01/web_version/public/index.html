@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Digit Recognizer</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+</head>
+<body>
+  <main>
+    <h1>Handwritten Digit Recognizer</h1>
+    <p id="status">Loading...</p>
+    <progress id="progress" max="1" value="0" hidden></progress>
+
+    <section class="workspace">
+      <div class="panel">
+        <canvas id="pad" width="280" height="280"></canvas>
+        <div class="buttons">
+          <button id="clear">Clear</button>
+          <button id="retrain">Retrain model</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="result">
+          <div>
+            <div class="label">Prediction</div>
+            <div id="digit">-</div>
+            <div id="confidence">&nbsp;</div>
+          </div>
+          <div>
+            <div class="label">Model input (28x28)</div>
+            <canvas id="preview" width="28" height="28"></canvas>
+          </div>
+        </div>
+        <ol id="bars" start="0"></ol>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

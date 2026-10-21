@@ -1,0 +1,16 @@
+{
+  "name": "digit-recognizer-desktop",
+  "version": "1.0.0",
+  "description": "Desktop app: draw a digit and recognize it with a CNN trained on MNIST (Electron + TensorFlow.js).",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "4.22.0"
+  },
+  "devDependencies": {
+    "electron": "44.5.1"
+  }
+}

@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- 작성일시: 2026-10-21 16:41 -->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- 이 앱의 파일과 blob 이미지만 허용한다 -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:">
+  <title>Digit Recognizer</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- TensorFlow.js는 CDN이 아니라 로컬 node_modules에서 불러온다(오프라인 동작).
+       ES5용 tf.min.js는 polyfill이 Function("return this")를 써서 CSP에 막히므로,
+       eval이 없는 ES2017 빌드를 사용한다. -->
+  <script src="../node_modules/@tensorflow/tfjs/dist/tf.es2017.min.js"></script>
+</head>
+<body>
+  <main>
+    <p id="status">Loading...</p>
+    <progress id="progress" max="1" value="0" hidden></progress>
+
+    <section class="workspace">
+      <div class="panel">
+        <canvas id="pad" width="280" height="280"></canvas>
+        <div class="buttons">
+          <button id="clear">Clear</button>
+          <button id="retrain">Retrain model</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="result">
+          <div>
+            <div class="label">Prediction</div>
+            <div id="digit">-</div>
+            <div id="confidence">&nbsp;</div>
+          </div>
+          <div>
+            <div class="label">Model input (28x28)</div>
+            <canvas id="preview" width="28" height="28"></canvas>
+          </div>
+        </div>
+        <ol id="bars" start="0"></ol>
+      </div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

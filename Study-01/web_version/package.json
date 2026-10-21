@@ -1,0 +1,9 @@
+{
+  "name": "digit-recognizer",
+  "version": "1.0.0",
+  "description": "Draw a digit in the browser and recognize it with a CNN trained on MNIST (TensorFlow.js).",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  }
+}
