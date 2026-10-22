@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>상식 퀴즈</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="app">
+
+    <!-- 시작 화면 -->
+    <section id="start-screen" class="screen active">
+      <h1 class="title">상식 퀴즈</h1>
+      <p class="subtitle">한국사 · 과학 · 지리 · 일반상식</p>
+
+      <h2 class="section-label">카테고리 선택</h2>
+      <div id="category-select" class="category-grid"></div>
+
+      <button id="start-btn" class="btn btn-primary">게임 시작</button>
+      <p class="hint">키보드 1~4로 답을 고르고 Enter로 넘어갈 수 있어요</p>
+    </section>
+
+    <!-- 퀴즈 화면 -->
+    <section id="quiz-screen" class="screen">
+      <header class="quiz-header">
+        <span id="progress-text" class="progress-text"></span>
+        <span id="score-text" class="score-text"></span>
+      </header>
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+
+      <div class="question-meta">
+        <span id="question-category" class="badge"></span>
+        <span id="question-difficulty" class="badge badge-difficulty"></span>
+      </div>
+      <h2 id="question-text" class="question-text"></h2>
+
+      <div id="options" class="options"></div>
+
+      <div id="feedback" class="feedback" hidden>
+        <p id="feedback-title" class="feedback-title"></p>
+        <p id="feedback-explanation" class="feedback-explanation"></p>
+        <button id="next-btn" class="btn btn-primary">다음 문제</button>
+      </div>
+    </section>
+
+    <!-- 결과 화면 -->
+    <section id="result-screen" class="screen">
+      <h1 class="title">퀴즈 완료!</h1>
+      <p id="result-message" class="subtitle"></p>
+
+      <div class="result-score">
+        <span id="result-score" class="result-score-value"></span>
+        <span id="result-max" class="result-score-max"></span>
+      </div>
+
+      <dl class="result-stats">
+        <div><dt>정답 개수</dt><dd id="result-correct"></dd></div>
+        <div><dt>정답률</dt><dd id="result-rate"></dd></div>
+      </dl>
+
+      <div class="result-actions">
+        <button id="retry-btn" class="btn btn-primary">다시 하기</button>
+        <button id="home-btn" class="btn btn-secondary">처음으로</button>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/questions.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
