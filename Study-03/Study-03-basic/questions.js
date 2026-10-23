@@ -34,7 +34,7 @@ const quizQuestions = [
         question: "고려의 수도는 어디였나요?",
         options: ["한양", "평양", "개경", "경주"],
         correctAnswer: 2,
-        explanation: "고려의 수도는 개경(현재의 개성)이었습니다."
+        explanation: "고려의 수도는 개경(현재의 개성)이었습니다. 몽골 침입기(1232~1270년)에는 일시적으로 강화도로 천도하기도 했습니다."
     },
     {
         id: 5,
@@ -61,7 +61,7 @@ const quizQuestions = [
         question: "고구려를 건국한 인물은?",
         options: ["온조", "주몽", "박혁거세", "김수로"],
         correctAnswer: 1,
-        explanation: "주몽(동명성왕)은 기원전 37년 고구려를 건국했습니다."
+        explanation: "주몽(동명성왕)은 『삼국사기』 기록에 따르면 기원전 37년 고구려를 건국했습니다."
     },
     {
         id: 8,
@@ -85,7 +85,7 @@ const quizQuestions = [
         id: 10,
         category: "한국사",
         difficulty: "medium",
-        question: "조선시대 최고 교육기관은?",
+        question: "조선시대 국가가 세운 최고(最高) 학부, 즉 국립 최고 교육기관은?",
         options: ["향교", "서원", "성균관", "서당"],
         correctAnswer: 2,
         explanation: "성균관은 조선시대 최고의 국립 교육기관이었습니다."
@@ -94,10 +94,10 @@ const quizQuestions = [
         id: 41,
         category: "한국사",
         difficulty: "medium",
-        question: "고려 시대 무신정권의 최고 권력기구는?",
+        question: "1170년 무신정변 직후, 무신정권 초기의 최고 권력기구는?",
         options: ["중방", "정방", "도방", "삼별초"],
         correctAnswer: 0,
-        explanation: "중방은 1170년 무신정변 이후 무신들이 국정을 논의하던 최고 권력기구였습니다."
+        explanation: "중방은 1170년 무신정변 직후 무신들이 국정을 논의하던 최고 권력기구였습니다. 이후 최씨 정권기에는 교정도감이 최고 권력기구 역할을 했습니다."
     },
     {
         id: 42,
@@ -132,7 +132,7 @@ const quizQuestions = [
         id: 11,
         category: "세계지리",
         difficulty: "easy",
-        question: "세계에서 가장 큰 대륙은?",
+        question: "면적 기준으로 세계에서 가장 큰 대륙은?",
         options: ["아프리카", "아시아", "북아메리카", "남극"],
         correctAnswer: 1,
         explanation: "아시아는 약 44,579,000km²로 세계에서 가장 큰 대륙입니다."
@@ -141,10 +141,10 @@ const quizQuestions = [
         id: 12,
         category: "세계지리",
         difficulty: "medium",
-        question: "세계에서 가장 긴 강은?",
-        options: ["아마존강", "나일강", "양쯔강", "미시시피강"],
+        question: "일반적으로 세계에서 가장 긴 강으로 인정되는 강은? (길이 기준)",
+        options: ["콩고강", "나일강", "양쯔강", "미시시피강"],
         correctAnswer: 1,
-        explanation: "나일강은 약 6,650km로 세계에서 가장 긴 강입니다."
+        explanation: "나일강은 약 6,650km로 일반적으로 세계에서 가장 긴 강으로 인정됩니다. 다만 발원지 측정 방식에 따라 아마존강이 더 길다는 주장도 있습니다."
     },
     {
         id: 13,
@@ -159,19 +159,19 @@ const quizQuestions = [
         id: 14,
         category: "세계지리",
         difficulty: "hard",
-        question: "세계에서 가장 깊은 해구는?",
+        question: "최대 수심 기준으로 세계에서 가장 깊은 해구는?",
         options: ["마리아나 해구", "통가 해구", "필리핀 해구", "푸에르토리코 해구"],
         correctAnswer: 0,
-        explanation: "마리아나 해구의 챌린저 해연은 약 11,034m로 가장 깊습니다."
+        explanation: "마리아나 해구의 챌린저 해연은 약 10,900m 이상(측정에 따라 약 10,920~10,990m)으로 세계에서 가장 깊습니다."
     },
     {
         id: 15,
         category: "세계지리",
         difficulty: "medium",
-        question: "세계에서 가장 큰 사막은?",
+        question: "극지 사막을 포함할 때, 면적 기준으로 세계에서 가장 큰 사막은?",
         options: ["사하라 사막", "고비 사막", "남극 사막", "아라비아 사막"],
         correctAnswer: 2,
-        explanation: "남극 대륙은 약 1,400만km²의 극지 사막으로 세계 최대입니다."
+        explanation: "남극 대륙은 약 1,400만km²의 극지 사막으로 세계 최대입니다. 극지 사막을 제외한 아열대 사막 중에서는 사하라 사막이 가장 큽니다."
     },
     {
         id: 16,
@@ -186,19 +186,19 @@ const quizQuestions = [
         id: 17,
         category: "세계지리",
         difficulty: "medium",
-        question: "세계에서 가장 높은 산은?",
+        question: "해발고도 기준으로 세계에서 가장 높은 산은?",
         options: ["K2", "에베레스트", "칸첸중가", "마칼루"],
         correctAnswer: 1,
-        explanation: "에베레스트산은 해발 8,848.86m로 세계 최고봉입니다."
+        explanation: "에베레스트산은 해발 8,848.86m(2020년 중국·네팔 공동 측량 기준)로 세계 최고봉입니다."
     },
     {
         id: 18,
         category: "세계지리",
         difficulty: "hard",
-        question: "세계에서 가장 큰 호수는?",
+        question: "면적 기준으로 세계에서 가장 큰 호수는? (염호 포함)",
         options: ["바이칼호", "슈피리어호", "카스피해", "빅토리아호"],
         correctAnswer: 2,
-        explanation: "카스피해는 약 371,000km²로 세계 최대의 호수입니다."
+        explanation: "카스피해는 이름에 '해'가 붙지만 지리학적으로는 바다와 연결되지 않은 호수(염호)로, 약 371,000km²로 세계 최대입니다. 담수호 중에서는 슈피리어호가 가장 큽니다."
     },
     {
         id: 19,
@@ -213,7 +213,7 @@ const quizQuestions = [
         id: 20,
         category: "세계지리",
         difficulty: "medium",
-        question: "세계에서 가장 작은 나라는?",
+        question: "면적 기준으로 세계에서 가장 작은 나라는?",
         options: ["모나코", "바티칸", "산마리노", "리히텐슈타인"],
         correctAnswer: 1,
         explanation: "바티칸 시국은 약 0.44km²로 면적 기준 세계에서 가장 작은 나라입니다."
@@ -233,16 +233,16 @@ const quizQuestions = [
         id: 22,
         category: "과학",
         difficulty: "medium",
-        question: "태양계에서 가장 큰 행성은?",
+        question: "지름 기준으로 태양계에서 가장 큰 행성은?",
         options: ["토성", "목성", "천왕성", "해왕성"],
         correctAnswer: 1,
-        explanation: "목성은 지름이 약 142,984km로 태양계 최대 행성입니다."
+        explanation: "목성은 적도 지름이 약 142,984km로 태양계 최대 행성이며, 질량도 가장 큽니다."
     },
     {
         id: 23,
         category: "과학",
         difficulty: "easy",
-        question: "빛의 속도는 초속 약 몇 km인가요?",
+        question: "진공에서 빛의 속도는 초속 약 몇 km인가요?",
         options: ["30만 km", "100만 km", "3만 km", "1000 km"],
         correctAnswer: 0,
         explanation: "빛의 속도는 진공에서 초속 약 299,792km입니다."
@@ -251,10 +251,10 @@ const quizQuestions = [
         id: 24,
         category: "과학",
         difficulty: "hard",
-        question: "DNA의 이중나선 구조를 발견한 과학자는?",
+        question: "1953년 DNA 이중나선 구조 모형을 발표한 과학자는?",
         options: ["다윈", "아인슈타인", "왓슨과 크릭", "멘델"],
         correctAnswer: 2,
-        explanation: "제임스 왓슨과 프랜시스 크릭은 1953년 DNA 이중나선 구조를 발견했습니다."
+        explanation: "제임스 왓슨과 프랜시스 크릭은 1953년 DNA 이중나선 구조 모형을 발표했습니다. 이 과정에서 로절린드 프랭클린의 X선 회절 사진이 중요한 근거가 되었습니다."
     },
     {
         id: 25,
@@ -269,7 +269,7 @@ const quizQuestions = [
         id: 26,
         category: "과학",
         difficulty: "easy",
-        question: "지구의 대기 중 가장 많은 기체는?",
+        question: "건조 공기의 부피 기준으로, 지구 대기 중 가장 많은 기체는?",
         options: ["산소", "이산화탄소", "질소", "수소"],
         correctAnswer: 2,
         explanation: "질소는 대기의 약 78%를 차지합니다."
@@ -281,7 +281,7 @@ const quizQuestions = [
         question: "절대온도 0도는 섭씨 몇 도인가요?",
         options: ["-100°C", "-273.15°C", "-373°C", "0°C"],
         correctAnswer: 1,
-        explanation: "절대영도는 -273.15°C로 이론상 도달 가능한 최저 온도입니다."
+        explanation: "절대영도는 -273.15°C로 이론상 최저 온도이며, 실제로는 도달할 수 없습니다."
     },
     {
         id: 28,
@@ -296,10 +296,10 @@ const quizQuestions = [
         id: 29,
         category: "과학",
         difficulty: "easy",
-        question: "인체에서 가장 큰 장기는?",
+        question: "무게 기준으로 인체에서 가장 큰 기관(器官)은?",
         options: ["심장", "간", "폐", "피부"],
         correctAnswer: 3,
-        explanation: "피부는 인체에서 가장 큰 장기로 체중의 약 16%를 차지합니다."
+        explanation: "피부는 인체에서 가장 큰 기관으로 체중의 약 16%를 차지합니다. 몸속 내장 기관 중에서는 간이 가장 큽니다."
     },
     {
         id: 30,
@@ -325,10 +325,10 @@ const quizQuestions = [
         id: 32,
         category: "예술과 문화",
         difficulty: "medium",
-        question: "베토벤의 교향곡은 총 몇 개인가요?",
+        question: "베토벤이 완성한 교향곡은 총 몇 개인가요?",
         options: ["5개", "7개", "9개", "12개"],
         correctAnswer: 2,
-        explanation: "루트비히 판 베토벤은 총 9개의 교향곡을 작곡했습니다."
+        explanation: "루트비히 판 베토벤은 총 9개의 교향곡을 완성했습니다. 10번 교향곡은 스케치만 남아 있습니다."
     },
     {
         id: 33,
@@ -337,7 +337,7 @@ const quizQuestions = [
         question: "'해바라기' 연작으로 유명한 화가는?",
         options: ["모네", "고흐", "르누아르", "세잔"],
         correctAnswer: 1,
-        explanation: "빈센트 반 고흐는 1888-1889년 해바라기 연작을 그렸습니다."
+        explanation: "빈센트 반 고흐는 1887년 파리 시기와 1888~1889년 아를 시기에 해바라기 연작을 그렸습니다."
     },
     {
         id: 34,
@@ -373,7 +373,7 @@ const quizQuestions = [
         question: "'생각하는 사람' 조각의 작가는?",
         options: ["로댕", "미켈란젤로", "베르니니", "도나텔로"],
         correctAnswer: 0,
-        explanation: "오귀스트 로댕은 1902년 '생각하는 사람'을 완성했습니다."
+        explanation: "오귀스트 로댕은 1880년경 '지옥의 문'의 일부로 '생각하는 사람'을 구상했고, 1904년 대형 청동상으로 주조했습니다."
     },
     {
         id: 38,
@@ -382,13 +382,13 @@ const quizQuestions = [
         question: "인상주의 화파의 이름은 어느 작품에서 유래했나요?",
         options: ["수련", "인상, 해돋이", "물랭 루즈", "별이 빛나는 밤"],
         correctAnswer: 1,
-        explanation: "클로드 모네의 '인상, 해돋이(1872)'에서 인상주의라는 이름이 유래했습니다."
+        explanation: "클로드 모네의 '인상, 해돋이(1872)'가 1874년 전시회에 출품된 뒤, 이 제목에서 인상주의라는 이름이 유래했습니다."
     },
     {
         id: 39,
         category: "예술과 문화",
         difficulty: "easy",
-        question: "한국의 전통 음악을 무엇이라 하나요?",
+        question: "한국의 전통 음악을 총칭하는 말은?",
         options: ["가요", "국악", "민요", "판소리"],
         correctAnswer: 1,
         explanation: "국악은 한국의 전통 음악을 총칭하는 말입니다."
@@ -416,16 +416,16 @@ const quizQuestions = [
         id: 46,
         category: "세계지리",
         difficulty: "medium",
-        question: "아프리카 대륙에서 면적이 가장 큰 국가는?",
+        question: "2011년 남수단 독립 이후, 면적 기준으로 아프리카에서 가장 큰 국가는?",
         options: ["나이지리아","남아프리카공화국","알제리","이집트"],
         correctAnswer: 2,
-        explanation: "알제리는 약 238만km²로 아프리카에서 가장 큰 국가입니다."
+        explanation: "알제리는 약 238만km²로 아프리카에서 가장 큰 국가입니다. 2011년 남수단이 분리되기 전에는 수단이 가장 컸습니다."
     },
     {
         id: 47,
         category: "과학",
         difficulty: "easy",
-        question: "광합성에 필요한 기체는?",
+        question: "광합성의 원료로 사용되는 기체는?",
         options: ["산소","이산화탄소","질소","수소"],
         correctAnswer: 1,
         explanation: "식물은 이산화탄소와 물, 빛을 이용해 광합성을 합니다."
@@ -434,7 +434,7 @@ const quizQuestions = [
         id: 48,
         category: "예술과 문화",
         difficulty: "medium",
-        question: "레오나르도 다빈치의 '최후의 만찬'이 그려진 도시는?",
+        question: "레오나르도 다빈치의 '최후의 만찬' 원작 벽화가 있는 도시는?",
         options: ["로마","피렌체","밀라노","베네치아"],
         correctAnswer: 2,
         explanation: "최후의 만찬은 밀라노의 산타 마리아 델레 그라치에 수도원에 있습니다."

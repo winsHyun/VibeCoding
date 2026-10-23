@@ -12,13 +12,36 @@
         <div id="startScreen" class="screen active">
             <div class="start-content">
                 <h1 class="title">🎯 퀴즈 게임</h1>
-                <p class="subtitle">카테고리를 선택하면 10문제가 출제됩니다</p>
-                <div class="categories-preview">
-                    <button class="category-chip" data-category="한국사">🏛️ 한국사</button>
-                    <button class="category-chip" data-category="세계지리">🌍 세계지리</button>
-                    <button class="category-chip" data-category="과학">🔬 과학</button>
-                    <button class="category-chip" data-category="예술과 문화">🎨 예술과 문화</button>
+                <p class="subtitle">게임 모드를 선택하세요</p>
+
+                <div class="mode-list">
+                    <button class="mode-card" data-mode="full">
+                        <span class="mode-icon">🏆</span>
+                        <span class="mode-name">전체 도전</span>
+                        <span class="mode-desc">4개 카테고리 · 40문제</span>
+                    </button>
+                    <button class="mode-card" data-mode="speed">
+                        <span class="mode-icon">⚡</span>
+                        <span class="mode-name">스피드 퀴즈</span>
+                        <span class="mode-desc">20문제 · 문제당 15초</span>
+                    </button>
                 </div>
+
+                <div class="category-mode">
+                    <p class="section-label">📚 카테고리별 도전 (10문제)</p>
+                    <div class="categories-preview">
+                        <button class="category-chip" data-category="한국사">🏛️ 한국사</button>
+                        <button class="category-chip" data-category="세계지리">🌍 세계지리</button>
+                        <button class="category-chip" data-category="과학">🔬 과학</button>
+                        <button class="category-chip" data-category="예술과 문화">🎨 예술과 문화</button>
+                    </div>
+                </div>
+
+                <ul class="rules">
+                    <li>정답 +10점 · 10초 안에 정답 +3점 · 힌트 없이 정답 +2점</li>
+                    <li>연속 정답 콤보: 3연속 +3 · 5연속 +5 · 10연속 +10</li>
+                    <li>💡 힌트(H): 오답 2개 제거, 게임당 3회 · ⏸ 일시정지(P)</li>
+                </ul>
             </div>
         </div>
 
@@ -28,6 +51,7 @@
                 <div class="progress-info">
                     <span id="currentQuestion">1</span> / <span id="totalQuestions">10</span>
                 </div>
+                <div id="timerDisplay" class="timer">⏱ 0.0초</div>
                 <div class="score-info">
                     점수: <span id="currentScore">0</span>
                 </div>
@@ -36,13 +60,34 @@
             <div class="progress-bar">
                 <div id="progressFill" class="progress-fill"></div>
             </div>
+            <div class="time-bar">
+                <div id="timeFill" class="time-fill"></div>
+            </div>
 
             <div class="quiz-content">
-                <div class="category-badge" id="categoryBadge">한국사</div>
+                <div class="quiz-toolbar">
+                    <div class="category-badge" id="categoryBadge">한국사</div>
+                    <div id="comboDisplay" class="combo"></div>
+                    <div class="toolbar-actions">
+                        <button id="hintBtn" class="tool-btn">💡 힌트 <span id="hintCount">3</span></button>
+                        <button id="pauseBtn" class="tool-btn">⏸ 일시정지</button>
+                    </div>
+                </div>
+
                 <h2 id="questionText" class="question">문제가 여기 표시됩니다</h2>
 
                 <div id="optionsContainer" class="options-container">
                     <!-- 옵션들이 동적으로 생성됨 -->
+                </div>
+
+                <!-- 일시정지 오버레이 -->
+                <div id="pauseOverlay" class="pause-overlay">
+                    <div class="pause-content">
+                        <div class="pause-icon">⏸</div>
+                        <h3>일시정지</h3>
+                        <button id="resumeBtn" class="btn btn-primary">계속하기</button>
+                        <button id="quitBtn" class="btn btn-ghost">그만하기</button>
+                    </div>
                 </div>
             </div>
 
@@ -52,6 +97,7 @@
                     <div id="feedbackIcon" class="feedback-icon"></div>
                     <h3 id="feedbackTitle">정답!</h3>
                     <p id="feedbackExplanation">설명이 여기 표시됩니다</p>
+                    <div id="feedbackScore" class="feedback-score"></div>
                     <button id="nextBtn" class="btn btn-secondary">다음 문제</button>
                 </div>
             </div>
@@ -61,6 +107,7 @@
         <div id="resultScreen" class="screen">
             <div class="result-content">
                 <h1 class="result-title">🏆 퀴즈 완료!</h1>
+                <p id="resultMode" class="subtitle"></p>
 
                 <div class="result-stats">
                     <div class="stat-card">
@@ -75,6 +122,18 @@
                         <div class="stat-value" id="accuracyRate">0%</div>
                         <div class="stat-label">정답률</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="avgTime">0초</div>
+                        <div class="stat-label">평균 응답 시간</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="longestStreak">0</div>
+                        <div class="stat-label">최장 연속 정답</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="hintsUsed">0</div>
+                        <div class="stat-label">사용한 힌트</div>
+                    </div>
                 </div>
 
                 <div class="category-results" id="categoryResults">
@@ -82,13 +141,15 @@
                 </div>
 
                 <div class="result-actions">
-                    <button id="restartBtn" class="btn btn-primary">다시 시작</button>
+                    <button id="retryBtn" class="btn btn-secondary">같은 모드 다시</button>
+                    <button id="restartBtn" class="btn btn-primary">처음으로</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="questions.js"></script>
+    <script src="scoreManager.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

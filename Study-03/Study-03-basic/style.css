@@ -392,6 +392,248 @@ body {
     margin-top: 20px;
 }
 
+/* 게임 모드 선택 */
+.mode-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.mode-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 25px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mode-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.45);
+}
+
+.mode-icon {
+    font-size: 2em;
+}
+
+.mode-name {
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+.mode-desc {
+    font-size: 0.9em;
+    opacity: 0.9;
+}
+
+.category-mode {
+    padding: 20px;
+    border: 2px dashed var(--border-color);
+    border-radius: 16px;
+    margin-bottom: 25px;
+}
+
+.section-label {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 15px;
+}
+
+.category-mode .categories-preview {
+    margin-bottom: 0;
+}
+
+.rules {
+    list-style: none;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+    line-height: 1.8;
+}
+
+/* 타이머 */
+.timer {
+    font-size: 1.1em;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.timer.warning {
+    color: #ffd54f;
+    animation: pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulse {
+    from { opacity: 1; }
+    to { opacity: 0.5; }
+}
+
+.time-bar {
+    display: none;
+    height: 4px;
+    background: #f0f0f0;
+}
+
+.speed-mode .time-bar {
+    display: block;
+}
+
+.time-fill {
+    height: 100%;
+    width: 100%;
+    background: #42a5f5;
+    transition: width 0.1s linear;
+}
+
+.time-fill.warning {
+    background: var(--danger-color);
+}
+
+/* 퀴즈 도구 모음 (카테고리, 콤보, 힌트, 일시정지) */
+.quiz-content {
+    position: relative;
+}
+
+.quiz-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.quiz-toolbar .category-badge {
+    margin-bottom: 0;
+}
+
+.combo {
+    font-weight: 700;
+    color: #ff7043;
+}
+
+.toolbar-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.tool-btn {
+    padding: 8px 14px;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 0.9em;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tool-btn:hover:not(:disabled) {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.tool-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* 힌트로 제거된 선택지 */
+.option-btn.eliminated {
+    opacity: 0.25;
+    text-decoration: line-through;
+    pointer-events: none;
+}
+
+/* 일시정지 오버레이 (문제를 가려서 일시정지 중 풀이 방지) */
+.pause-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.97);
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+}
+
+.pause-overlay.show {
+    display: flex;
+}
+
+.pause-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.pause-icon {
+    font-size: 3em;
+}
+
+.pause-content h3 {
+    font-size: 1.5em;
+    color: var(--text-color);
+    margin-bottom: 8px;
+}
+
+.btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 2px solid var(--border-color);
+}
+
+.btn-ghost:hover {
+    border-color: var(--text-secondary);
+}
+
+/* 피드백 점수 내역 */
+.feedback-icon.timeout::before {
+    content: "⏰";
+}
+
+.feedback-score {
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+}
+
+/* 카테고리별 정답률 막대 */
+.category-result {
+    gap: 15px;
+}
+
+.category-name {
+    min-width: 90px;
+    text-align: left;
+}
+
+.category-bar {
+    flex: 1;
+    height: 8px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.category-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 4px;
+}
+
+.category-score {
+    min-width: 100px;
+    text-align: right;
+}
+
 /* Responsive Design */
 @media (max-width: 600px) {
     .container {
@@ -427,5 +669,18 @@ body {
 
     .result-actions .btn {
         width: 100%;
+    }
+
+    .quiz-header {
+        padding: 20px;
+    }
+
+    .toolbar-actions {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .tool-btn {
+        flex: 1;
     }
 }
