@@ -1,0 +1,191 @@
+<!doctype html>
+<!-- 작성일시: 2026-10-26 14:39 -->
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>냉장고 레시피</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="app-header">
+    <h1>냉장고 레시피</h1>
+    <p class="subtitle">냉장고 사진 → 재료 확인 → 레시피 추천, 세 단계면 끝나요</p>
+    <!-- 현재 프로필 (프로필을 고른 뒤에만 보임) -->
+    <div id="profile-bar" class="profile-bar" hidden>
+      <span class="profile-name">👤 <strong id="current-profile-name"></strong></span>
+      <button id="my-recipes-btn" class="btn small" type="button">내 레시피</button>
+      <button id="edit-profile-btn" class="btn small" type="button">프로필 편집</button>
+      <button id="switch-profile-btn" class="btn small" type="button">프로필 바꾸기</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 화면 A. 프로필 선택 -->
+    <section data-view="profiles" class="card" hidden>
+      <h2>누가 요리하나요?</h2>
+      <p class="help">프로필을 고르면 알레르기와 식단에 맞춰 레시피를 추천해요.</p>
+      <ul id="profile-list" class="profile-list"></ul>
+      <button id="new-profile-btn" class="btn" type="button">+ 새 프로필</button>
+      <p class="help small">로그인 없이 이 컴퓨터에서 쓰는 프로필이에요. 이 앱을 여는 사람은 모든 프로필을 볼 수 있어요.</p>
+    </section>
+
+    <!-- 화면 B. 프로필 만들기/편집 -->
+    <section data-view="profile-form" class="card" hidden>
+      <h2 id="profile-form-title">프로필 만들기</h2>
+      <form id="profile-form" class="profile-form" novalidate>
+        <label class="field">
+          <span>이름 <span class="help small">(필수, 20자 이내)</span></span>
+          <input name="name" class="text-input" maxlength="20" autocomplete="off" required aria-describedby="profile-name-error">
+        </label>
+        <p id="profile-name-error" class="field-error" hidden></p>
+        <fieldset>
+          <legend>알레르기</legend>
+          <div id="allergy-options" class="check-grid"></div>
+          <label class="field">
+            <span>그 밖의 알레르기 <span class="help small">(쉼표로 구분, 각 20자 이내 · 모두 합쳐 20개까지)</span></span>
+            <input name="customAllergies" class="text-input" placeholder="예: 키위, 메밀" autocomplete="off" aria-describedby="custom-allergy-error">
+          </label>
+          <p id="custom-allergy-error" class="field-error" hidden></p>
+        </fieldset>
+        <fieldset>
+          <legend>식단 제한</legend>
+          <div id="diet-options" class="check-grid"></div>
+        </fieldset>
+        <fieldset>
+          <legend>선호 요리</legend>
+          <div id="cuisine-options" class="check-grid"></div>
+        </fieldset>
+        <div class="option-grid two">
+          <label>매운맛 선호
+            <select name="spiceLevel" id="spice-select"></select>
+          </label>
+          <label>기본 인분
+            <select name="defaultServings">
+              <option value="1">1인분</option>
+              <option value="2" selected>2인분</option>
+              <option value="3">3인분</option>
+              <option value="4">4인분</option>
+            </select>
+          </label>
+        </div>
+        <div class="form-actions">
+          <button id="profile-submit-btn" class="btn primary" type="submit">저장</button>
+          <button id="profile-cancel-btn" class="btn" type="button">취소</button>
+          <!-- 위험한 동작은 저장·취소와 떨어뜨려 오른쪽 끝에 둔다 -->
+          <button id="profile-delete-btn" class="btn danger push-end" type="button" hidden>프로필 삭제</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 화면 C. 메인: 사진 → 재료 → 레시피 -->
+    <div data-view="main" class="view" hidden>
+      <!-- 1. 사진 업로드 -->
+      <section class="card">
+        <h2>1. 냉장고 사진 올리기</h2>
+        <!-- 파일 input은 화면에서만 숨기고(visually-hidden) Tab으로 포커스할 수 있게 둔다. Enter/Space로 사진 선택 창이 열린다 -->
+        <label id="dropzone" class="dropzone" for="file-input">
+          <input id="file-input" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" aria-describedby="dropzone-hint">
+          <img id="preview" class="preview" alt="올린 냉장고 사진 미리보기" hidden>
+          <span id="dropzone-hint" class="dropzone-hint"><strong>📷 사진 선택</strong><br>여기를 누르거나 사진을 끌어다 놓으세요<br><small>JPEG, PNG, WebP · 최대 30MB</small></span>
+        </label>
+        <p id="photo-note" class="help small" hidden>다른 사진으로 바꾸려면 사진을 누르세요.</p>
+        <button id="recognize-btn" class="btn primary" type="button" disabled>재료 인식</button>
+        <button id="manual-btn" class="btn" type="button">사진 없이 재료 직접 입력</button>
+      </section>
+
+      <!-- 2. 인식 결과 확인 -->
+      <section id="result-section" class="card" hidden>
+        <h2 tabindex="-1">2. 재료 확인</h2>
+        <p class="help">AI가 추정한 재료예요. 틀린 재료는 ✕로 빼고, 빠진 재료는 직접 추가해 주세요.</p>
+        <ul id="chip-list" class="chip-list" aria-label="레시피에 쓸 재료"></ul>
+        <p id="empty-result" class="help" hidden>아직 재료가 없어요. 아래에서 직접 추가해 주세요.</p>
+        <!-- 재료를 빼거나 더했을 때 화면 낭독기에만 알린다 -->
+        <p id="chip-announce" class="visually-hidden" aria-live="polite"></p>
+        <form id="add-form" class="add-form">
+          <!-- 최대 개수·길이는 서버(src/recipes.js parseRecipeRequest)와 같다 -->
+          <input id="add-input" class="text-input" list="ingredient-options" maxlength="30" placeholder="재료 이름 입력 (예: 달걀)" autocomplete="off" aria-label="추가할 재료 이름" aria-describedby="add-hint add-error">
+          <datalist id="ingredient-options"></datalist>
+          <button class="btn" type="submit">추가</button>
+        </form>
+        <p id="add-error" class="field-error add-error" hidden></p>
+        <p id="add-hint" class="help small">재료는 30개까지, 이름은 30자 이내로 넣을 수 있어요. <span id="chip-count"></span></p>
+        <p class="legend"><span class="dot high"></span>신뢰도 높음 <span class="dot normal"></span>보통 <span class="dot manual"></span>직접 추가</p>
+        <button id="confirm-btn" class="btn primary" type="button">재료 확정</button>
+      </section>
+
+      <!-- 3. 확정 재료 + 레시피 조건 -->
+      <section id="confirmed-section" class="card" hidden>
+        <h2 tabindex="-1">3. 레시피 추천</h2>
+        <div class="confirmed-row">
+          <p class="confirmed-list"><span class="help">확정한 재료</span><br><span id="confirmed-list"></span></p>
+          <button id="edit-btn" class="btn small" type="button">재료 고치기</button>
+        </div>
+        <p id="profile-note" class="help" hidden></p>
+        <form id="recipe-form" class="option-grid">
+          <label>조리 시간
+            <select name="maxCookTimeMinutes">
+              <option value="">제한 없음</option>
+              <option value="15">15분 이내</option>
+              <option value="30">30분 이내</option>
+              <option value="60">60분 이내</option>
+            </select>
+          </label>
+          <label>난이도
+            <select name="difficulty">
+              <option value="">상관없음</option>
+              <option value="easy">쉬움</option>
+              <option value="medium">보통</option>
+              <option value="hard">어려움</option>
+            </select>
+          </label>
+          <label>인분
+            <select name="servings" id="servings-select">
+              <option value="1">1인분</option>
+              <option value="2" selected>2인분</option>
+              <option value="3">3인분</option>
+              <option value="4">4인분</option>
+            </select>
+          </label>
+          <button id="recipe-btn" class="btn primary" type="submit">레시피 추천</button>
+        </form>
+      </section>
+
+      <!-- 4. 레시피 결과 -->
+      <section id="recipe-section" class="recipe-section" hidden>
+        <div class="recipe-section-head">
+          <h2 tabindex="-1">4. 추천 레시피</h2>
+          <p class="help">레시피 이름을 누르면 재료와 조리 순서가 펼쳐져요. 마음에 들면 카드 아래 '☆ 저장'을 눌러 두세요.</p>
+        </div>
+        <div id="recipe-list" class="recipe-list"></div>
+        <button id="more-btn" class="btn" type="button" aria-describedby="more-hint">다른 레시피 추천</button>
+        <p id="more-hint" class="help small">지금 레시피는 아래 '이전 추천'에 남아요.</p>
+        <!-- '다른 레시피 추천'으로 밀려난 이전 묶음. 저장 버튼도 그대로 쓸 수 있다 -->
+        <details id="previous-recipes" class="previous-recipes" hidden>
+          <summary id="previous-summary">이전 추천 레시피</summary>
+          <div id="previous-list" class="recipe-list"></div>
+        </details>
+      </section>
+    </div>
+
+    <!-- 화면 D. 내 레시피 -->
+    <div data-view="saved" class="view" hidden>
+      <section class="card">
+        <div class="saved-head">
+          <h2>내 레시피</h2>
+          <button id="saved-back-btn" class="btn small" type="button">← 레시피 찾기</button>
+        </div>
+        <input id="saved-search" class="text-input" type="search" placeholder="제목으로 검색" autocomplete="off">
+        <p id="saved-empty" class="help" aria-live="polite" hidden></p>
+      </section>
+      <div id="saved-list" class="recipe-list"></div>
+    </div>
+
+    <!-- 진행·완료·오류 안내. 다음 행동 버튼(다시 시도 등)이 함께 붙을 수 있다.
+         오류일 때는 showStatus가 role="alert"(assertive)로 바꾼다 -->
+    <div id="status" class="status" role="status" aria-live="polite" hidden></div>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "fridge-recipe",
+  "version": "0.1.0",
+  "private": true,
+  "description": "작성일시: 2026-10-26 14:39 / 냉장고 사진 재료 인식 및 레시피 추천 웹 앱",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "demo": "node server.js --demo",
+    "evaluate": "node scripts/evaluate.js",
+    "test": "node --test",
+    "check:recipes": "node scripts/check-recipes.js"
+  },
+  "dependencies": {
+    "express": "^5.3.0",
+    "sharp": "^0.35.5"
+  }
+}
