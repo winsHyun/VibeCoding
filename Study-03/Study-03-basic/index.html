@@ -4,152 +4,306 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>퀴즈 게임 - 지식의 도전</title>
+    <script>
+        // 저장된 테마를 CSS 로드 전에 적용해 깜빡임 방지
+        try {
+            const theme = JSON.parse(localStorage.getItem('quizSettings') || '{}').theme;
+            if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+        } catch {}
+    </script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <!-- 시작 화면 -->
-        <div id="startScreen" class="screen active">
-            <div class="start-content">
-                <h1 class="title">🎯 퀴즈 게임</h1>
-                <p class="subtitle">게임 모드를 선택하세요</p>
-
-                <div class="mode-list">
-                    <button class="mode-card" data-mode="full">
-                        <span class="mode-icon">🏆</span>
-                        <span class="mode-name">전체 도전</span>
-                        <span class="mode-desc">4개 카테고리 · 40문제</span>
-                    </button>
-                    <button class="mode-card" data-mode="speed">
-                        <span class="mode-icon">⚡</span>
-                        <span class="mode-name">스피드 퀴즈</span>
-                        <span class="mode-desc">20문제 · 문제당 15초</span>
-                    </button>
-                </div>
-
-                <div class="category-mode">
-                    <p class="section-label">📚 카테고리별 도전 (10문제)</p>
-                    <div class="categories-preview">
-                        <button class="category-chip" data-category="한국사">🏛️ 한국사</button>
-                        <button class="category-chip" data-category="세계지리">🌍 세계지리</button>
-                        <button class="category-chip" data-category="과학">🔬 과학</button>
-                        <button class="category-chip" data-category="예술과 문화">🎨 예술과 문화</button>
-                    </div>
-                </div>
-
-                <ul class="rules">
-                    <li>정답 +10점 · 10초 안에 정답 +3점 · 힌트 없이 정답 +2점</li>
-                    <li>연속 정답 콤보: 3연속 +3 · 5연속 +5 · 10연속 +10</li>
-                    <li>💡 힌트(H): 오답 2개 제거, 게임당 3회 · ⏸ 일시정지(P)</li>
-                </ul>
+    <div class="container" id="app">
+        <!-- 상단 바 (퀴즈 진행 중에는 순위·기록 버튼 숨김) -->
+        <nav class="app-bar" aria-label="메뉴">
+            <div class="app-nav">
+                <button id="leaderboardBtn" class="bar-btn" type="button">🏅 순위표</button>
+                <button id="dashboardBtn" class="bar-btn" type="button">📊 내 기록</button>
             </div>
-        </div>
-
-        <!-- 퀴즈 화면 -->
-        <div id="quizScreen" class="screen">
-            <div class="quiz-header">
-                <div class="progress-info">
-                    <span id="currentQuestion">1</span> / <span id="totalQuestions">10</span>
-                </div>
-                <div id="timerDisplay" class="timer">⏱ 0.0초</div>
-                <div class="score-info">
-                    점수: <span id="currentScore">0</span>
-                </div>
+            <div class="app-settings">
+                <button id="soundToggle" class="bar-btn icon-only" type="button" aria-pressed="false" aria-label="효과음">🔇</button>
+                <button id="themeToggle" class="bar-btn icon-only" type="button" aria-pressed="false" aria-label="다크 모드">🌙</button>
             </div>
+        </nav>
 
-            <div class="progress-bar">
-                <div id="progressFill" class="progress-fill"></div>
-            </div>
-            <div class="time-bar">
-                <div id="timeFill" class="time-fill"></div>
-            </div>
+        <main>
+            <!-- 시작 화면 -->
+            <section id="startScreen" class="screen active" aria-labelledby="startTitle">
+                <div class="start-content">
+                    <h1 class="title" id="startTitle" tabindex="-1">🎯 퀴즈 게임</h1>
 
-            <div class="quiz-content">
-                <div class="quiz-toolbar">
-                    <div class="category-badge" id="categoryBadge">한국사</div>
-                    <div id="comboDisplay" class="combo"></div>
-                    <div class="toolbar-actions">
-                        <button id="hintBtn" class="tool-btn">💡 힌트 <span id="hintCount">3</span></button>
-                        <button id="pauseBtn" class="tool-btn">⏸ 일시정지</button>
+                    <div class="player-setup">
+                        <label for="playerName" class="section-label">닉네임</label>
+                        <input id="playerName" class="text-input" type="text" maxlength="12"
+                               autocomplete="nickname" placeholder="플레이어">
+                    </div>
+
+                    <fieldset class="difficulty-picker">
+                        <legend class="section-label">난이도</legend>
+                        <div class="segmented">
+                            <label><input type="radio" name="difficulty" value="all" checked><span>전체</span></label>
+                            <label><input type="radio" name="difficulty" value="easy"><span>쉬움</span></label>
+                            <label><input type="radio" name="difficulty" value="medium"><span>보통</span></label>
+                            <label><input type="radio" name="difficulty" value="hard"><span>어려움</span></label>
+                        </div>
+                    </fieldset>
+
+                    <p class="subtitle">게임 모드를 선택하세요</p>
+
+                    <div class="mode-list">
+                        <button class="mode-card" data-mode="full" type="button">
+                            <span class="mode-icon" aria-hidden="true">🏆</span>
+                            <span class="mode-name">전체 도전</span>
+                            <span class="mode-desc" data-desc="full">4개 카테고리 · 40문제</span>
+                        </button>
+                        <button class="mode-card" data-mode="speed" type="button">
+                            <span class="mode-icon" aria-hidden="true">⚡</span>
+                            <span class="mode-name">스피드 퀴즈</span>
+                            <span class="mode-desc" data-desc="speed">20문제 · 문제당 15초</span>
+                        </button>
+                    </div>
+
+                    <div class="category-mode">
+                        <p class="section-label" id="categoryModeLabel">📚 카테고리별 도전 (10문제)</p>
+                        <div class="categories-preview" role="group" aria-labelledby="categoryModeLabel">
+                            <button class="category-chip" data-category="한국사" type="button">🏛️ 한국사</button>
+                            <button class="category-chip" data-category="세계지리" type="button">🌍 세계지리</button>
+                            <button class="category-chip" data-category="과학" type="button">🔬 과학</button>
+                            <button class="category-chip" data-category="예술과 문화" type="button">🎨 예술과 문화</button>
+                        </div>
+                    </div>
+
+                    <ul class="rules">
+                        <li>정답 +10점 · 10초 안에 정답 +3점 · 힌트 없이 정답 +2점</li>
+                        <li>연속 정답 콤보: 3연속 +3 · 5연속 +5 · 10연속 +10</li>
+                        <li>💡 힌트(H): 오답 2개 제거, 게임당 3회 · ⏸ 일시정지(P)</li>
+                        <li>⌨️ 1~4 또는 ↑↓ 후 Enter로 답 선택</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- 퀴즈 화면 -->
+            <section id="quizScreen" class="screen" aria-label="퀴즈">
+                <div class="quiz-header">
+                    <div class="progress-info">
+                        <span id="currentQuestion">1</span> / <span id="totalQuestions">10</span>
+                    </div>
+                    <div id="timerDisplay" class="timer" aria-hidden="true">⏱ 0.0초</div>
+                    <div class="score-info">
+                        점수: <span id="currentScore">0</span>
                     </div>
                 </div>
 
-                <h2 id="questionText" class="question">문제가 여기 표시됩니다</h2>
-
-                <div id="optionsContainer" class="options-container">
-                    <!-- 옵션들이 동적으로 생성됨 -->
+                <div class="progress-bar" aria-hidden="true">
+                    <div id="progressFill" class="progress-fill"></div>
+                </div>
+                <div class="time-bar" aria-hidden="true">
+                    <div id="timeFill" class="time-fill"></div>
                 </div>
 
-                <!-- 일시정지 오버레이 -->
-                <div id="pauseOverlay" class="pause-overlay">
-                    <div class="pause-content">
-                        <div class="pause-icon">⏸</div>
-                        <h3>일시정지</h3>
-                        <button id="resumeBtn" class="btn btn-primary">계속하기</button>
-                        <button id="quitBtn" class="btn btn-ghost">그만하기</button>
+                <div class="quiz-content">
+                    <div class="quiz-toolbar">
+                        <div class="category-badge" id="categoryBadge">한국사</div>
+                        <div id="comboDisplay" class="combo"></div>
+                        <div class="toolbar-actions">
+                            <button id="hintBtn" class="tool-btn" type="button">💡 힌트 <span id="hintCount">3</span></button>
+                            <button id="pauseBtn" class="tool-btn" type="button">⏸ 일시정지</button>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- 피드백 모달 -->
-            <div id="feedbackModal" class="feedback-modal">
-                <div class="feedback-content">
-                    <div id="feedbackIcon" class="feedback-icon"></div>
-                    <h3 id="feedbackTitle">정답!</h3>
-                    <p id="feedbackExplanation">설명이 여기 표시됩니다</p>
-                    <div id="feedbackScore" class="feedback-score"></div>
-                    <button id="nextBtn" class="btn btn-secondary">다음 문제</button>
-                </div>
-            </div>
-        </div>
+                    <h2 id="questionText" class="question" tabindex="-1">문제가 여기 표시됩니다</h2>
 
-        <!-- 결과 화면 -->
-        <div id="resultScreen" class="screen">
-            <div class="result-content">
-                <h1 class="result-title">🏆 퀴즈 완료!</h1>
-                <p id="resultMode" class="subtitle"></p>
+                    <div id="optionsContainer" class="options-container" role="group" aria-labelledby="questionText">
+                        <!-- 옵션들이 동적으로 생성됨 -->
+                    </div>
 
-                <div class="result-stats">
-                    <div class="stat-card">
-                        <div class="stat-value" id="finalScore">0</div>
-                        <div class="stat-label">최종 점수</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="correctCount">0</div>
-                        <div class="stat-label">정답 개수</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="accuracyRate">0%</div>
-                        <div class="stat-label">정답률</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="avgTime">0초</div>
-                        <div class="stat-label">평균 응답 시간</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="longestStreak">0</div>
-                        <div class="stat-label">최장 연속 정답</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="hintsUsed">0</div>
-                        <div class="stat-label">사용한 힌트</div>
+                    <!-- 일시정지 오버레이 -->
+                    <div id="pauseOverlay" class="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pauseTitle">
+                        <div class="pause-content">
+                            <div class="pause-icon" aria-hidden="true">⏸</div>
+                            <h3 id="pauseTitle">일시정지</h3>
+                            <button id="resumeBtn" class="btn btn-primary" type="button">계속하기</button>
+                            <button id="quitBtn" class="btn btn-ghost" type="button">그만하기</button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="category-results" id="categoryResults">
-                    <!-- 카테고리별 결과가 동적으로 생성됨 -->
+                <!-- 피드백 모달 -->
+                <div id="feedbackModal" class="feedback-modal" role="dialog" aria-modal="true"
+                     aria-labelledby="feedbackTitle" aria-describedby="feedbackExplanation">
+                    <div class="feedback-content">
+                        <div id="feedbackIcon" class="feedback-icon" aria-hidden="true"></div>
+                        <h3 id="feedbackTitle">정답!</h3>
+                        <p id="feedbackExplanation">설명이 여기 표시됩니다</p>
+                        <div id="feedbackScore" class="feedback-score"></div>
+                        <button id="nextBtn" class="btn btn-secondary" type="button">다음 문제</button>
+                    </div>
                 </div>
+            </section>
 
-                <div class="result-actions">
-                    <button id="retryBtn" class="btn btn-secondary">같은 모드 다시</button>
-                    <button id="restartBtn" class="btn btn-primary">처음으로</button>
+            <!-- 결과 화면 -->
+            <section id="resultScreen" class="screen" aria-labelledby="resultTitle">
+                <div class="result-content">
+                    <h1 class="result-title" id="resultTitle" tabindex="-1">🏆 퀴즈 완료!</h1>
+                    <p id="resultMode" class="subtitle"></p>
+
+                    <div id="recordBanner" class="record-banner" role="status"></div>
+
+                    <div class="result-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="finalScore">0</div>
+                            <div class="stat-label">최종 점수</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="correctCount">0</div>
+                            <div class="stat-label">정답 개수</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="accuracyRate">0%</div>
+                            <div class="stat-label">정답률</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="avgTime">0초</div>
+                            <div class="stat-label">평균 응답 시간</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="longestStreak">0</div>
+                            <div class="stat-label">최장 연속 정답</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="hintsUsed">0</div>
+                            <div class="stat-label">사용한 힌트</div>
+                        </div>
+                    </div>
+
+                    <div class="category-results" id="categoryResults">
+                        <!-- 카테고리별 결과가 동적으로 생성됨 -->
+                    </div>
+
+                    <div class="result-actions">
+                        <button id="shareBtn" class="btn btn-ghost" type="button">📋 결과 공유</button>
+                        <button id="resultLeaderboardBtn" class="btn btn-ghost" type="button">🏅 순위표</button>
+                        <button id="retryBtn" class="btn btn-secondary" type="button">같은 모드 다시</button>
+                        <button id="restartBtn" class="btn btn-primary" type="button">처음으로</button>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </section>
+
+            <!-- 순위표 화면 -->
+            <section id="leaderboardScreen" class="screen" aria-labelledby="leaderboardTitle">
+                <div class="panel-content">
+                    <h1 class="panel-title" id="leaderboardTitle" tabindex="-1">🏅 순위표</h1>
+                    <p class="panel-desc">이 브라우저에 저장된 기록 · 플레이어별 최고 기록 상위 10명</p>
+
+                    <div class="tabs" role="tablist" aria-label="기간">
+                        <button class="tab" role="tab" type="button" data-period="daily" aria-selected="false" tabindex="-1">오늘</button>
+                        <button class="tab" role="tab" type="button" data-period="weekly" aria-selected="false" tabindex="-1">이번 주</button>
+                        <button class="tab" role="tab" type="button" data-period="allTime" aria-selected="true">전체</button>
+                    </div>
+
+                    <div class="filters">
+                        <label class="filter">
+                            <span>모드</span>
+                            <select id="boardMode" class="select-input">
+                                <option value="">모든 모드</option>
+                                <option value="full">전체 도전</option>
+                                <option value="speed">스피드 퀴즈</option>
+                                <option value="category:한국사">카테고리 · 한국사</option>
+                                <option value="category:세계지리">카테고리 · 세계지리</option>
+                                <option value="category:과학">카테고리 · 과학</option>
+                                <option value="category:예술과 문화">카테고리 · 예술과 문화</option>
+                            </select>
+                        </label>
+                        <label class="filter">
+                            <span>난이도</span>
+                            <select id="boardDifficulty" class="select-input">
+                                <option value="">모든 난이도</option>
+                                <option value="all">전체(혼합)</option>
+                                <option value="easy">쉬움</option>
+                                <option value="medium">보통</option>
+                                <option value="hard">어려움</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div id="leaderboardPanel" role="tabpanel" aria-labelledby="leaderboardTitle">
+                        <ol id="leaderboardList" class="leaderboard-list"></ol>
+                        <p id="leaderboardEmpty" class="empty-state" hidden>아직 기록이 없습니다. 게임을 플레이해 보세요!</p>
+                    </div>
+
+                    <div class="panel-actions">
+                        <button class="btn btn-primary back-btn" type="button">돌아가기</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 개인 대시보드 -->
+            <section id="dashboardScreen" class="screen" aria-labelledby="dashboardTitle">
+                <div class="panel-content">
+                    <h1 class="panel-title" id="dashboardTitle" tabindex="-1">📊 내 기록</h1>
+                    <p class="panel-desc" id="dashboardPlayer"></p>
+
+                    <div class="result-stats dashboard-stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statPlayCount">0</div>
+                            <div class="stat-label">플레이 횟수</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statBestScore">0</div>
+                            <div class="stat-label">최고 점수</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statAccuracy">0%</div>
+                            <div class="stat-label">평균 정답률</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statCorrect">0</div>
+                            <div class="stat-label">누적 정답</div>
+                        </div>
+                    </div>
+
+                    <div id="dashboardBody">
+                        <h2 class="section-title">카테고리별 정답률</h2>
+                        <div id="dashboardCategories" class="category-results"></div>
+
+                        <div class="chart-header">
+                            <h2 class="section-title" id="chartTitle">성장 그래프</h2>
+                            <div class="segmented small" role="group" aria-label="그래프 기준">
+                                <button type="button" class="seg-btn" data-metric="totalScore" aria-pressed="true">점수</button>
+                                <button type="button" class="seg-btn" data-metric="accuracy" aria-pressed="false">정답률</button>
+                            </div>
+                        </div>
+                        <p class="chart-note">최근 20게임 · 모드마다 문제 수가 달라 점수는 같은 모드끼리 비교하세요</p>
+                        <div class="chart-wrap" id="growthChart"></div>
+
+                        <h2 class="section-title">최근 게임</h2>
+                        <div class="table-scroll">
+                            <table class="history-table">
+                                <thead>
+                                    <tr><th scope="col">날짜</th><th scope="col">모드</th><th scope="col">난이도</th><th scope="col">점수</th><th scope="col">정답률</th></tr>
+                                </thead>
+                                <tbody id="historyTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <p id="dashboardEmpty" class="empty-state" hidden>아직 기록이 없습니다. 게임을 플레이하면 통계가 쌓입니다.</p>
+
+                    <div class="panel-actions">
+                        <button id="clearHistoryBtn" class="btn btn-danger" type="button">내 기록 초기화</button>
+                        <button class="btn btn-primary back-btn" type="button">돌아가기</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <div id="toast" class="toast" role="status" aria-live="polite"></div>
+        <div id="srAnnouncer" class="sr-only" aria-live="assertive"></div>
     </div>
 
     <script src="questions.js"></script>
     <script src="scoreManager.js"></script>
+    <script src="localDataManager.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

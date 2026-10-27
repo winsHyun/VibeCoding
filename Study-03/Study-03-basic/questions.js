@@ -438,4 +438,337 @@ const quizQuestions = [
         options: ["로마","피렌체","밀라노","베네치아"],
         correctAnswer: 2,
         explanation: "최후의 만찬은 밀라노의 산타 마리아 델레 그라치에 수도원에 있습니다."
+    },
+
+    // 3단계 문제 풀 확장 (ID 49~80, 카테고리별 20문제)
+    // 한국사
+    {
+        id: 49,
+        category: "한국사",
+        difficulty: "easy",
+        question: "임진왜란 때 한산도 대첩을 승리로 이끈 장수는?",
+        options: ["권율", "김시민", "이순신", "곽재우"],
+        correctAnswer: 2,
+        explanation: "이순신은 1592년 한산도 앞바다에서 학익진 전법으로 일본 수군을 크게 물리쳤습니다."
+    },
+    {
+        id: 50,
+        category: "한국사",
+        difficulty: "easy",
+        question: "고려를 건국한 인물은?",
+        options: ["왕건", "궁예", "견훤", "이성계"],
+        correctAnswer: 0,
+        explanation: "왕건(태조)은 918년 고려를 건국하고 936년 후삼국을 통일했습니다."
+    },
+    {
+        id: 51,
+        category: "한국사",
+        difficulty: "easy",
+        question: "고려 시대 몽골의 침입을 불교의 힘으로 물리치려고 새긴 것으로, 현재 합천 해인사에 보관된 것은?",
+        options: ["직지심체요절", "훈민정음 해례본", "팔만대장경", "조선왕조실록"],
+        correctAnswer: 2,
+        explanation: "팔만대장경(재조대장경)은 1236~1251년에 새겨졌으며, 현재 합천 해인사 장경판전에 보관되어 있습니다."
+    },
+    {
+        id: 52,
+        category: "한국사",
+        difficulty: "medium",
+        question: "612년 고구려의 을지문덕이 수나라 군대를 크게 물리친 전투는?",
+        options: ["안시성 전투", "귀주대첩", "행주대첩", "살수대첩"],
+        correctAnswer: 3,
+        explanation: "살수대첩(612년)은 을지문덕이 수 양제의 대군을 살수(청천강으로 추정)에서 크게 물리친 전투입니다."
+    },
+    {
+        id: 53,
+        category: "한국사",
+        difficulty: "hard",
+        question: "1876년 조선이 일본과 체결한 조약은?",
+        options: ["제물포 조약", "한성 조약", "톈진 조약", "강화도 조약"],
+        correctAnswer: 3,
+        explanation: "강화도 조약(조일수호조규)은 1876년에 체결되었습니다. 제물포 조약은 1882년, 한성 조약은 1884년, 톈진 조약은 1885년(청·일)에 맺어졌습니다."
+    },
+
+    // 세계지리
+    {
+        id: 54,
+        category: "세계지리",
+        difficulty: "easy",
+        question: "영국의 수도는?",
+        options: ["런던", "맨체스터", "에든버러", "리버풀"],
+        correctAnswer: 0,
+        explanation: "런던은 영국의 수도입니다. 에든버러는 영국을 구성하는 스코틀랜드의 수도입니다."
+    },
+    {
+        id: 55,
+        category: "세계지리",
+        difficulty: "easy",
+        question: "이집트의 피라미드와 나일강이 있는 대륙은?",
+        options: ["아시아", "유럽", "남아메리카", "아프리카"],
+        correctAnswer: 3,
+        explanation: "이집트는 아프리카 대륙 북동부에 있으며, 나일강은 아프리카를 남에서 북으로 흐릅니다."
+    },
+    {
+        id: 56,
+        category: "세계지리",
+        difficulty: "medium",
+        question: "오스트레일리아(호주)의 수도는?",
+        options: ["캔버라", "시드니", "멜버른", "퍼스"],
+        correctAnswer: 0,
+        explanation: "캔버라는 1913년 수도로 계획되어 1927년부터 연방 의회가 자리한 호주의 수도입니다. 최대 도시는 시드니입니다."
+    },
+    {
+        id: 57,
+        category: "세계지리",
+        difficulty: "medium",
+        question: "캐나다의 수도는?",
+        options: ["토론토", "밴쿠버", "몬트리올", "오타와"],
+        correctAnswer: 3,
+        explanation: "오타와는 캐나다의 수도입니다. 최대 도시는 토론토입니다."
+    },
+    {
+        id: 58,
+        category: "세계지리",
+        difficulty: "medium",
+        question: "유엔(UN) 추계 기준, 2023년 인구가 가장 많은 나라가 된 국가는?",
+        options: ["중국", "인도", "미국", "인도네시아"],
+        correctAnswer: 1,
+        explanation: "유엔 추계에 따르면 인도는 2023년 약 14억 2,860만 명으로 중국(약 14억 2,570만 명)을 넘어 인구 1위가 되었습니다."
+    },
+    {
+        id: 59,
+        category: "세계지리",
+        difficulty: "hard",
+        question: "면적 기준으로 세계에서 가장 큰 섬은? (대륙인 오스트레일리아 제외)",
+        options: ["그린란드", "뉴기니섬", "보르네오섬", "마다가스카르섬"],
+        correctAnswer: 0,
+        explanation: "그린란드는 약 216만km²로 세계에서 가장 큰 섬입니다. 2위는 뉴기니섬(약 78만km²)입니다."
+    },
+    {
+        id: 60,
+        category: "세계지리",
+        difficulty: "hard",
+        question: "국토 면적 기준으로 남아메리카에서 두 번째로 큰 나라는?",
+        options: ["페루", "콜롬비아", "볼리비아", "아르헨티나"],
+        correctAnswer: 3,
+        explanation: "아르헨티나는 약 278만km²로 브라질(약 851만km²) 다음으로 남아메리카에서 큰 나라입니다."
+    },
+    {
+        id: 61,
+        category: "세계지리",
+        difficulty: "hard",
+        question: "해발고도 기준 아프리카 최고봉인 킬리만자로산이 있는 나라는?",
+        options: ["탄자니아", "케냐", "우간다", "에티오피아"],
+        correctAnswer: 0,
+        explanation: "킬리만자로산(약 5,895m)은 케냐 국경 가까이에 있지만 탄자니아 북동부에 위치합니다."
+    },
+    {
+        id: 62,
+        category: "세계지리",
+        difficulty: "hard",
+        question: "총면적 기준으로 세계에서 두 번째로 큰 나라는?",
+        options: ["미국", "중국", "브라질", "캐나다"],
+        correctAnswer: 3,
+        explanation: "캐나다는 약 998만km²로 러시아 다음으로 큰 나라입니다. 미국과 중국은 측정 방식에 따라 3·4위가 바뀝니다."
+    },
+
+    // 과학
+    {
+        id: 63,
+        category: "과학",
+        difficulty: "easy",
+        question: "식물의 잎이 초록색으로 보이게 하는 색소는?",
+        options: ["엽록소", "카로틴", "멜라닌", "헤모글로빈"],
+        correctAnswer: 0,
+        explanation: "엽록소(클로로필)는 붉은빛과 푸른빛을 주로 흡수하고 초록빛을 반사해 잎이 초록색으로 보입니다."
+    },
+    {
+        id: 64,
+        category: "과학",
+        difficulty: "easy",
+        question: "평균 공전 거리 기준으로 태양에 가장 가까운 행성은?",
+        options: ["금성", "지구", "화성", "수성"],
+        correctAnswer: 3,
+        explanation: "수성은 태양으로부터 평균 약 5,790만km 떨어져 있어 태양에 가장 가까운 행성입니다."
+    },
+    {
+        id: 65,
+        category: "과학",
+        difficulty: "medium",
+        question: "원소 기호 'Fe'가 나타내는 원소는?",
+        options: ["플루오린", "납", "철", "금"],
+        correctAnswer: 2,
+        explanation: "Fe는 라틴어 ferrum에서 온 철의 원소 기호입니다. 플루오린은 F, 납은 Pb, 금은 Au입니다."
+    },
+    {
+        id: 66,
+        category: "과학",
+        difficulty: "medium",
+        question: "사람의 혈액에서 산소를 운반하는 혈구는?",
+        options: ["백혈구", "혈소판", "림프구", "적혈구"],
+        correctAnswer: 3,
+        explanation: "적혈구 속 헤모글로빈이 폐에서 산소와 결합해 온몸으로 운반합니다."
+    },
+    {
+        id: 67,
+        category: "과학",
+        difficulty: "medium",
+        question: "뉴턴의 운동 제2법칙(가속도 법칙)을 나타내는 식은?",
+        options: ["F = ma", "E = mc²", "PV = nRT", "V = IR"],
+        correctAnswer: 0,
+        explanation: "운동 제2법칙은 힘(F)이 질량(m)과 가속도(a)의 곱과 같다는 법칙입니다. E = mc²는 질량-에너지 등가식, V = IR은 옴의 법칙입니다."
+    },
+    {
+        id: 68,
+        category: "과학",
+        difficulty: "hard",
+        question: "1928년 푸른곰팡이에서 페니실린을 발견한 과학자는?",
+        options: ["파스퇴르", "코흐", "제너", "플레밍"],
+        correctAnswer: 3,
+        explanation: "알렉산더 플레밍은 1928년 푸른곰팡이가 세균의 증식을 막는 것을 관찰해 페니실린을 발견했습니다."
+    },
+    {
+        id: 69,
+        category: "과학",
+        difficulty: "hard",
+        question: "1869년 원소를 원자량 순으로 배열한 주기율표를 발표한 러시아 화학자는?",
+        options: ["멘델레예프", "라부아지에", "돌턴", "보어"],
+        correctAnswer: 0,
+        explanation: "드미트리 멘델레예프는 1869년 주기율표를 발표하고, 아직 발견되지 않은 원소의 자리와 성질까지 예측했습니다."
+    },
+    {
+        id: 70,
+        category: "과학",
+        difficulty: "hard",
+        question: "지구 내부 구조 중 액체 상태로 알려진 층은?",
+        options: ["지각", "맨틀", "외핵", "내핵"],
+        correctAnswer: 2,
+        explanation: "외핵은 철과 니켈이 주성분인 액체층으로, 지진파 중 S파가 통과하지 못하는 것으로 확인됩니다. 내핵은 고체입니다."
+    },
+    {
+        id: 71,
+        category: "과학",
+        difficulty: "hard",
+        question: "세포 호흡으로 ATP를 주로 만들어 '세포의 발전소'라 불리는 세포 소기관은?",
+        options: ["리보솜", "골지체", "핵", "미토콘드리아"],
+        correctAnswer: 3,
+        explanation: "미토콘드리아는 세포 호흡으로 ATP를 생성합니다. 리보솜은 단백질 합성, 골지체는 단백질 가공·분비를 담당합니다."
+    },
+
+    // 예술과 문화
+    {
+        id: 72,
+        category: "예술과 문화",
+        difficulty: "easy",
+        question: "'어린 왕자'의 작가는?",
+        options: ["헤밍웨이", "카뮈", "톨스토이", "생텍쥐페리"],
+        correctAnswer: 3,
+        explanation: "앙투안 드 생텍쥐페리는 1943년 '어린 왕자'를 출간했습니다."
+    },
+    {
+        id: 73,
+        category: "예술과 문화",
+        difficulty: "easy",
+        question: "사물놀이에 쓰이는 네 가지 악기에 포함되지 않는 것은?",
+        options: ["가야금", "꽹과리", "장구", "북"],
+        correctAnswer: 0,
+        explanation: "사물놀이는 꽹과리, 징, 장구, 북의 네 타악기로 연주합니다. 가야금은 현악기입니다."
+    },
+    {
+        id: 74,
+        category: "예술과 문화",
+        difficulty: "medium",
+        question: "오페라 '마술피리'를 작곡한 음악가는?",
+        options: ["바흐", "베르디", "바그너", "모차르트"],
+        correctAnswer: 3,
+        explanation: "볼프강 아마데우스 모차르트는 1791년 오페라 '마술피리'를 작곡해 같은 해 빈에서 초연했습니다."
+    },
+    {
+        id: 75,
+        category: "예술과 문화",
+        difficulty: "medium",
+        question: "바티칸 시스티나 성당의 천장화 '천지창조'를 그린 화가는?",
+        options: ["미켈란젤로", "라파엘로", "보티첼리", "다빈치"],
+        correctAnswer: 0,
+        explanation: "미켈란젤로는 1508~1512년 시스티나 성당 천장화를 그렸고, 1536~1541년에는 제단 벽화 '최후의 심판'을 그렸습니다."
+    },
+    {
+        id: 76,
+        category: "예술과 문화",
+        difficulty: "medium",
+        question: "판소리 다섯 마당에 포함되지 않는 것은?",
+        options: ["춘향가", "심청가", "아리랑", "수궁가"],
+        correctAnswer: 2,
+        explanation: "판소리 다섯 마당은 춘향가, 심청가, 흥보가, 수궁가, 적벽가입니다. 아리랑은 민요입니다."
+    },
+    {
+        id: 77,
+        category: "예술과 문화",
+        difficulty: "hard",
+        question: "1893년 작품 '절규'를 그린 화가는?",
+        options: ["클림트", "실레", "칸딘스키", "뭉크"],
+        correctAnswer: 3,
+        explanation: "노르웨이의 화가 에드바르 뭉크는 1893년 '절규'를 그렸으며, 이후 여러 버전을 남겼습니다."
+    },
+    {
+        id: 78,
+        category: "예술과 문화",
+        difficulty: "hard",
+        question: "발레 음악 '백조의 호수'를 작곡한 음악가는?",
+        options: ["차이콥스키", "림스키코르사코프", "스트라빈스키", "라흐마니노프"],
+        correctAnswer: 0,
+        explanation: "표트르 일리치 차이콥스키는 1875~1876년 '백조의 호수'를 작곡했고, 1877년 모스크바에서 초연되었습니다."
+    },
+    {
+        id: 79,
+        category: "예술과 문화",
+        difficulty: "hard",
+        question: "1844년 제주 유배 중에 '세한도'를 그린 조선 후기 인물은?",
+        options: ["김홍도", "신윤복", "정선", "김정희"],
+        correctAnswer: 3,
+        explanation: "추사 김정희는 1844년 제주 유배 중 제자 이상적에게 '세한도'를 그려 주었습니다."
+    },
+    {
+        id: 80,
+        category: "예술과 문화",
+        difficulty: "hard",
+        question: "안평대군의 꿈 이야기를 바탕으로 1447년 '몽유도원도'를 그린 화가는?",
+        options: ["정선", "김홍도", "신사임당", "안견"],
+        correctAnswer: 3,
+        explanation: "조선 전기 화가 안견은 1447년 안평대군의 꿈 이야기를 듣고 3일 만에 '몽유도원도'를 그렸습니다."
+    },
+    {
+        id: 81,
+        category: "한국사",
+        difficulty: "hard",
+        question: "1608년 광해군 즉위년에 이원익의 건의로 선혜청을 두고 경기도에서 처음 시행한 제도는?",
+        options: ["균역법", "영정법", "직전법", "대동법"],
+        correctAnswer: 3,
+        explanation: "대동법은 공물을 특산물 대신 쌀 등으로 내게 한 제도로, 1608년(광해군 즉위년) 경기도에서 처음 시행되었습니다. 이후 효종 때 김육의 노력으로 충청도 등으로 확대되었습니다."
+    },
+    {
+        id: 82,
+        category: "세계지리",
+        difficulty: "easy",
+        question: "면적 기준으로 세계에서 가장 넓은 대양은?",
+        options: ["태평양", "대서양", "인도양", "북극해"],
+        correctAnswer: 0,
+        explanation: "태평양은 면적이 약 1억 6,500만 km²로 세계에서 가장 넓은 대양이며, 지구의 모든 육지를 합친 것보다 넓습니다."
+    },
+    {
+        id: 83,
+        category: "과학",
+        difficulty: "hard",
+        question: "1543년 '천구의 회전에 관하여'를 출간해 태양 중심설(지동설)을 주장한 천문학자는?",
+        options: ["프톨레마이오스", "코페르니쿠스", "갈릴레이", "케플러"],
+        correctAnswer: 1,
+        explanation: "니콜라우스 코페르니쿠스는 1543년 뉘른베르크에서 '천구의 회전에 관하여'를 출간해, 지구가 아니라 태양이 중심에 있다는 지동설을 주장했습니다. 그는 같은 해에 세상을 떠났습니다."
+    },
+    {
+        id: 84,
+        category: "예술과 문화",
+        difficulty: "easy",
+        question: "'인어공주'와 '미운 오리 새끼'를 쓴 덴마크의 동화 작가는?",
+        options: ["그림 형제", "이솝", "샤를 페로", "안데르센"],
+        correctAnswer: 3,
+        explanation: "한스 크리스티안 안데르센(1805~1875)은 덴마크 오덴세 출신의 작가로, '인어공주', '미운 오리 새끼', '눈의 여왕' 등의 동화를 썼습니다."
     }];
