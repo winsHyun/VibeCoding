@@ -148,7 +148,7 @@ describe("createChat (fetch 모의)", () => {
       },
     });
     const r = await chat({ model: "a:free", messages: [], temperature: 0.4, maxTokens: 800, timeoutMs: 1000 });
-    assert.deepEqual(r, { content: GOOD, finishReason: "stop", model: "a:free" });
+    assert.deepEqual(r, { content: GOOD, finishReason: "stop", model: "a:free", usage: null });
     assert.equal(seen.init.headers.Authorization, "Bearer sk-test");
     const body = JSON.parse(seen.init.body);
     assert.equal(body.reasoning, undefined);

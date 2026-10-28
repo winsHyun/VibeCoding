@@ -66,7 +66,8 @@ async function expectError(res, status, code) {
 describe("기본", () => {
   test("GET /api/health", async () => {
     const res = await fetch(`${base}/api/health`);
-    assert.deepEqual(await res.json(), { ok: true, model: "a:free", hasApiKey: true });
+    // pdf 필드는 PDF 요약 기능(PDF_PRD S-10)에서 추가됨. 기존 필드는 그대로
+    assert.deepEqual(await res.json(), { ok: true, model: "a:free", hasApiKey: true, pdf: { maxBytes: 20971520, maxPages: 200, rerankModel: null } });
   });
   test("GET / 는 index.html이 없으면 404", async () => {
     await expectError(await fetch(`${base}/`), 404, "NOT_FOUND");

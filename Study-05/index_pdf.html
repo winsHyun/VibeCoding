@@ -1,0 +1,1408 @@
+<!-- 작성일시: 2026-10-28 15:10 -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="PDF 파일을 끌어 놓거나 골라 올리면 AI가 한국어로 한 줄 요약·개요·핵심 요점·키워드를 정리해 주는 화면">
+<title>PDF 한눈 요약 - AI 공감 다이어리</title>
+<!-- 파비콘: 인라인 SVG 이모지(별도 파일 요청·404 없음) -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%91%3C/text%3E%3C/svg%3E">
+<!-- 웹폰트: 렌더링을 막지 않게 print로 받은 뒤 적용, 실패하면 아래 대체 폰트로 표시됨 (index.html과 같은 방식) -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Dodum&display=swap" media="print" onload="this.media='all'">
+<style>
+  /* ---------- 색·폰트 변수 (다이어리와 같은 밝은 테마) ---------- */
+  :root {
+    --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    --font-hand: "Gaegu", "Nanum Pen Script", "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+    --bg: #f6eddf;
+    --bg-dot: #ecdcc6;
+    --paper: #fffaf1;
+    --card-border: #eedfca;
+    --ink: #3f2e22;
+    --ink-soft: #6b5242;
+    --line: #efe0cc;
+    --accent: #a4492a;
+    --accent-hover: #8a3b20;
+    --on-accent: #ffffff;
+    --accent-ink: #8a3b20;
+    --focus: #b4441c;
+    --chip-bg: #f7e6d3;
+    --drop-bg: #fffdf9;
+    --drop-border: #9a7c66;
+    --drop-active-bg: #fbe7da;
+    --error-bg: #fdecea;
+    --error-border: #d9958b;
+    --error-ink: #8c2318;
+    --warn-bg: #fff3d6;
+    --warn-border: #e2c27a;
+    --warn-ink: #5e4100;
+    --info-bg: #e9f0f7;
+    --info-border: #8aa6c1;
+    --info-ink: #1f3a55;
+    --ok-ink: #1d5c4b;
+    --shadow: 0 1px 2px rgba(80, 50, 30, 0.08), 0 8px 24px rgba(80, 50, 30, 0.08);
+  }
+
+  /* ---------- 다크 모드: 따뜻한 갈색 톤 유지 ---------- */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #221a15;
+      --bg-dot: #2c221b;
+      --paper: #2f241d;
+      --card-border: #45362b;
+      --ink: #f5e9dc;
+      --ink-soft: #d9c5b2;
+      --line: #43352b;
+      --accent: #f0a37f;
+      --accent-hover: #f6b998;
+      --on-accent: #2a1a10;
+      --accent-ink: #f6b998;
+      --focus: #ffc29f;
+      --chip-bg: #3d2f25;
+      --drop-bg: #261d17;
+      --drop-border: #a88d77;
+      --drop-active-bg: #45302a;
+      --error-bg: #3d2220;
+      --error-border: #9c5148;
+      --error-ink: #ffd0c8;
+      --warn-bg: #362b16;
+      --warn-border: #8a6f33;
+      --warn-ink: #f7dfa6;
+      --info-bg: #1d2a36;
+      --info-border: #5f84a8;
+      --info-ink: #d3e4f5;
+      --ok-ink: #a8dccb;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--ink);
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--bg-dot) 1px, transparent 1.2px);
+    background-size: 18px 18px;
+    overflow-wrap: anywhere;
+  }
+  h1, h2, h3 { line-height: 1.3; margin: 0; }
+  p { margin: 0; }
+  button { font: inherit; }
+
+  .sr-only {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0);
+    white-space: nowrap; border: 0;
+  }
+
+  .skip-link {
+    position: absolute; left: 1rem; top: -4rem;
+    background: var(--accent); color: var(--on-accent);
+    padding: .75rem 1rem; border-radius: .75rem; z-index: 10;
+    text-decoration: none; font-weight: 700;
+  }
+  .skip-link:focus { top: 1rem; }
+
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+    border-radius: .5rem;
+  }
+  [tabindex="-1"]:focus { outline: none; }
+
+  .wrap {
+    width: 100%;
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  /* ---------- 머리글 ---------- */
+  .top-nav { display: flex; justify-content: flex-end; }
+  .nav-link {
+    display: inline-flex; align-items: center; gap: .35rem;
+    min-height: 2.75rem;
+    padding: .4rem .9rem;
+    border-radius: 999px;
+    color: var(--accent-ink);
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid var(--card-border);
+    background: var(--paper);
+  }
+  .nav-link:hover { background: var(--chip-bg); }
+  .page-header { text-align: center; padding: .25rem .25rem 0; }
+  .page-header h1 {
+    font-family: var(--font-hand);
+    font-weight: 700;
+    font-size: clamp(2.1rem, 9vw, 2.9rem);
+    letter-spacing: .02em;
+  }
+  .tagline { margin-top: .25rem; color: var(--ink-soft); word-break: keep-all; }
+
+  /* ---------- 카드 공통 ---------- */
+  .card {
+    position: relative;
+    margin-top: 1.25rem;
+    padding: 1.25rem;
+    background: var(--paper);
+    border: 1px solid var(--card-border);
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow);
+  }
+  .card-title { font-family: var(--font-hand); font-weight: 700; font-size: 1.6rem; }
+
+  /* ---------- 버튼 ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+    min-height: 2.75rem; min-width: 2.75rem;
+    padding: .5rem 1.25rem;
+    border-radius: 999px;
+    border: 2px solid var(--accent);
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    text-align: center;
+    word-break: keep-all;
+    text-decoration: none;
+    transition: background-color .15s ease, color .15s ease, transform .1s ease;
+  }
+  .btn-primary { background: var(--accent); color: var(--on-accent); min-height: 3rem; padding: .6rem 1.6rem; font-size: 1.05rem; }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-secondary { background: transparent; color: var(--accent-ink); }
+  .btn-secondary:hover { background: var(--chip-bg); }
+  .btn:active { transform: translateY(1px); }
+  .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+  .btn[aria-disabled="true"]:active { transform: none; }
+
+  /* ---------- 서버 상태 안내 ---------- */
+  .notice {
+    margin-top: 1.25rem;
+    padding: 1.1rem 1.25rem;
+    border-radius: 1.25rem;
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+    border: 2px dashed var(--warn-border);
+  }
+  .notice h2 { font-family: var(--font-hand); font-size: 1.5rem; }
+  .notice p { margin-top: .4rem; word-break: keep-all; }
+  .notice .notice-small { font-size: .9rem; }
+  .notice .btn { margin-top: .85rem; border-color: currentColor; color: inherit; background: transparent; }
+  .notice .btn:hover { background: rgba(255, 255, 255, .35); }
+  code {
+    font-family: Consolas, "D2Coding", monospace;
+    font-size: .92em;
+    background: rgba(255, 255, 255, .55);
+    border: 1px solid var(--warn-border);
+    border-radius: .35rem;
+    padding: 0 .3rem;
+  }
+  @media (prefers-color-scheme: dark) { code { background: rgba(0, 0, 0, .25); } }
+
+  /* ---------- 업로드 영역 ---------- */
+  .dropzone {
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .6rem;
+    min-height: 13rem;
+    margin-top: .85rem;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    border: 3px dashed var(--drop-border);
+    border-radius: 1.1rem;
+    background: var(--drop-bg);
+    cursor: pointer;
+    transition: background-color .15s ease, border-color .15s ease;
+  }
+  .dropzone .drop-icon { font-size: 2.4rem; line-height: 1; }
+  .dropzone .drop-title { font-size: 1.15rem; font-weight: 700; word-break: keep-all; }
+  .dropzone .drop-sub { color: var(--ink-soft); font-size: .95rem; word-break: keep-all; }
+  /* 끌고 있는 동안: 색 + 실선 테두리 + 문구 변경(색만으로 알리지 않음) */
+  .dropzone.is-dragover {
+    background: var(--drop-active-bg);
+    border-style: solid;
+    border-color: var(--accent);
+  }
+  .dropzone[aria-disabled="true"] { cursor: progress; opacity: .7; }
+  .privacy {
+    margin-top: .85rem;
+    padding: .6rem .85rem;
+    border-radius: .85rem;
+    background: var(--info-bg);
+    border: 1px solid var(--info-border);
+    color: var(--info-ink);
+    font-size: .92rem;
+    word-break: keep-all;
+  }
+
+  /* ---------- 진행 ---------- */
+  .progress-card { text-align: center; }
+  .progress-title { font-family: var(--font-hand); font-size: 1.6rem; font-weight: 700; }
+  .steps {
+    display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem;
+    list-style: none; margin: .85rem 0 0; padding: 0;
+  }
+  .steps li {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .3rem .8rem;
+    border-radius: 999px;
+    border: 1px solid var(--card-border);
+    color: var(--ink-soft);
+    font-size: .92rem;
+  }
+  .steps li .mark { font-weight: 700; }
+  .steps-caption { margin-top: .6rem; color: var(--ink-soft); font-size: .85rem; word-break: keep-all; }
+  /* 처리 중에 새 파일을 놓거나 골랐을 때 몇 초 보이는 안내 */
+  .busy-note {
+    margin: .6rem auto 0;
+    max-width: 30rem;
+    padding: .5rem .85rem;
+    border-radius: .85rem;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    color: var(--warn-ink);
+    font-weight: 700;
+    word-break: keep-all;
+  }
+  .busy-note::before { content: "✋ "; }
+  .steps li[aria-current="step"] { border: 2px solid var(--accent); color: var(--ink); font-weight: 700; background: var(--chip-bg); }
+  .steps li.is-done { color: var(--ok-ink); }
+  .bar {
+    position: relative;
+    height: .5rem;
+    margin: 1rem auto 0;
+    max-width: 22rem;
+    border-radius: 999px;
+    background: var(--line);
+    overflow: hidden;
+  }
+  .bar::after {
+    content: "";
+    position: absolute; top: 0; left: -40%;
+    width: 40%; height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+    animation: slide 1.4s ease-in-out infinite;
+  }
+  @keyframes slide { 0% { left: -40%; } 100% { left: 100%; } }
+  .elapsed { margin-top: .75rem; font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .progress-sub { margin-top: .25rem; color: var(--ink-soft); word-break: keep-all; }
+  .progress-file { margin-top: .25rem; color: var(--ink-soft); font-size: .92rem; }
+  .progress-card .btn { margin-top: 1rem; }
+
+  /* ---------- 상태 한 줄 (취소 등) ---------- */
+  .status-line { margin-top: 1rem; color: var(--ink-soft); font-weight: 700; text-align: center; word-break: keep-all; }
+
+  /* ---------- 오류 ---------- */
+  .alert-box {
+    margin-top: 1.25rem;
+    padding: 1.1rem 1.25rem;
+    border-radius: 1.25rem;
+    background: var(--error-bg);
+    color: var(--error-ink);
+    border: 2px solid var(--error-border);
+  }
+  .alert-box h2 { font-size: 1.1rem; font-weight: 700; }
+  .alert-box h2::before { content: "⚠ "; }
+  .alert-box p { margin-top: .35rem; word-break: keep-all; }
+  .alert-box .alert-file { font-size: .9rem; }
+  .alert-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
+  .alert-box .btn { color: inherit; border-color: currentColor; background: transparent; }
+  .alert-box .btn:hover { background: rgba(255, 255, 255, .4); }
+  @media (prefers-color-scheme: dark) { .alert-box .btn:hover { background: rgba(0, 0, 0, .25); } }
+
+  /* ---------- 결과 ---------- */
+  .result { margin-top: 1.75rem; border-top: 6px solid var(--accent); }
+  .result-meta { display: flex; flex-wrap: wrap; gap: .35rem .5rem; margin: .6rem 0 0; padding: 0; list-style: none; }
+  .result-meta li {
+    padding: .1rem .65rem;
+    border-radius: 999px;
+    background: var(--chip-bg);
+    font-size: .9rem;
+  }
+  .file-name { margin-top: .5rem; font-size: 1.1rem; font-weight: 700; word-break: break-all; }
+  .notices {
+    margin-top: 1rem;
+    padding: .85rem 1rem;
+    border-radius: 1rem;
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+    border: 1px solid var(--warn-border);
+  }
+  .notices h3 { font-size: 1rem; }
+  .notices ul { margin: .35rem 0 0; padding-left: 1.2rem; }
+  .notices li { word-break: keep-all; }
+  .section-h { margin-top: 1.5rem; font-size: 1.15rem; font-weight: 700; color: var(--accent-ink); }
+  .one-line {
+    margin-top: 1rem;
+    padding: .9rem 1.1rem;
+    border-left: 5px solid var(--accent);
+    border-radius: 0 1rem 1rem 0;
+    background: var(--bg);
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.6;
+    word-break: keep-all;
+  }
+  .one-line-label { display: block; font-size: .85rem; font-weight: 400; color: var(--ink-soft); }
+  .overview { margin-top: .4rem; word-break: keep-all; white-space: pre-line; }
+  .points { margin: .5rem 0 0; padding-left: 1.6rem; }
+  .points li { margin-top: .45rem; word-break: keep-all; }
+  .points li::marker { font-weight: 700; color: var(--accent-ink); }
+  .badge {
+    display: inline-block;
+    margin-left: .35rem;
+    padding: 0 .45rem;
+    border-radius: .4rem;
+    border: 1px solid var(--card-border);
+    background: var(--chip-bg);
+    color: var(--ink-soft);
+    font-size: .8rem;
+    font-weight: 700;
+    line-height: 1.5;
+    white-space: nowrap;
+    vertical-align: .05em;
+  }
+  .sections { margin-top: .5rem; }
+  .sections details {
+    margin-top: .5rem;
+    border: 1px solid var(--card-border);
+    border-radius: .9rem;
+    background: var(--bg);
+  }
+  .sections summary {
+    display: flex; align-items: center; gap: .4rem;
+    min-height: 2.75rem;
+    padding: .45rem .9rem;
+    cursor: pointer;
+    font-weight: 700;
+    list-style: none;
+    border-radius: .9rem;
+  }
+  .sections summary::-webkit-details-marker { display: none; }
+  .sections summary::before { content: "▸"; flex: none; transition: transform .15s ease; }
+  .sections details[open] > summary::before { transform: rotate(90deg); }
+  .sections .sec-title { flex: 1 1 auto; min-width: 0; word-break: keep-all; }
+  .sections .sec-body { padding: 0 .9rem .8rem 1.9rem; word-break: keep-all; }
+  .tags { display: flex; flex-wrap: wrap; gap: .4rem; margin: .5rem 0 0; padding: 0; list-style: none; }
+  .tags li {
+    padding: .15rem .7rem;
+    border-radius: 999px;
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    font-size: .92rem;
+  }
+  .tags li::before { content: "#"; color: var(--ink-soft); }
+  .result-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.5rem; }
+  .copy-status { margin-top: .5rem; min-height: 1.65em; font-weight: 700; color: var(--ok-ink); word-break: keep-all; }
+  .copy-status.is-error { color: var(--error-ink); }
+  .model-line { margin-top: .75rem; font-size: .85rem; color: var(--ink-soft); word-break: break-all; }
+
+  .site-footer { margin-top: 2.5rem; font-size: .88rem; color: var(--ink-soft); text-align: center; word-break: keep-all; }
+
+  /* 768px 미만: 업로드 영역을 낮추고 버튼을 한 줄에 하나씩 */
+  @media (max-width: 47.99rem) {
+    .dropzone { min-height: 10rem; padding: 1.1rem .85rem; }
+    .result-actions, .alert-actions { flex-direction: column; }
+    .result-actions .btn, .alert-actions .btn, .dropzone .btn { width: 100%; }
+  }
+  @media (min-width: 48rem) {
+    .wrap { padding: 2rem 1.5rem 4rem; }
+    .card { padding: 1.5rem 1.75rem; }
+  }
+
+  /* 움직임 줄이기 설정 존중: 진행 막대 애니메이션 끔 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+      scroll-behavior: auto !important;
+    }
+    .bar::after { left: 0; width: 100%; opacity: .5; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#pick-btn">PDF 고르기로 바로 가기</a>
+
+<div class="wrap">
+  <nav class="top-nav" aria-label="다른 화면">
+    <a id="diary-link" class="nav-link" href="/"><span aria-hidden="true">📔</span>일기장으로</a>
+  </nav>
+  <header class="page-header">
+    <h1>PDF 한눈 요약</h1>
+    <p class="tagline">PDF 1개를 올리면 한 줄 요약, 개요, 핵심 요점, 키워드를 한국어로 정리해 드려요.</p>
+  </header>
+
+  <main id="main">
+    <noscript>
+      <div class="notice"><p>이 화면은 자바스크립트가 켜져 있어야 동작해요. 브라우저 설정에서 자바스크립트를 켜 주세요.</p></div>
+    </noscript>
+
+    <!-- 서버 상태 안내(file://에서 이동 중 / 꺼짐 / API 키 없음 / 다른 주소) -->
+    <section id="server-notice" class="notice" hidden aria-labelledby="server-notice-title">
+      <h2 id="server-notice-title" tabindex="-1"></h2>
+      <div id="server-notice-body"></div>
+      <button type="button" id="health-retry" class="btn">다시 확인하기</button>
+    </section>
+
+    <!-- 업로드 -->
+    <section id="upload-card" class="card" aria-labelledby="upload-title">
+      <h2 id="upload-title" class="card-title">요약할 PDF</h2>
+      <div id="dropzone" class="dropzone" aria-disabled="false">
+        <span class="drop-icon" aria-hidden="true">📄</span>
+        <p id="drop-title" class="drop-title">PDF 파일을 여기에 끌어 놓으세요</p>
+        <p id="drop-sub" class="drop-sub">또는 아래 버튼으로 골라 주세요. PDF 1개, 20MB까지 올릴 수 있어요.</p>
+        <button type="button" id="pick-btn" class="btn btn-primary" aria-describedby="drop-sub">PDF 파일 고르기</button>
+        <input type="file" id="file-input" accept="application/pdf,.pdf" hidden>
+      </div>
+      <p class="privacy" id="privacy"><span aria-hidden="true">🔒 </span>올린 문서 내용은 요약을 위해 외부 AI 서비스(OpenRouter·NVIDIA 등)로 보내지고, 무료 모델 제공자가 기록할 수 있어요. 기밀·개인정보가 담긴 문서는 올리지 마세요.</p>
+    </section>
+
+    <!-- 진행 -->
+    <section id="progress" class="card progress-card" hidden aria-labelledby="progress-title" aria-busy="true">
+      <h2 id="progress-title" class="progress-title">파일을 보내는 중이에요…</h2>
+      <p id="progress-file" class="progress-file"></p>
+      <p id="busy-note" class="busy-note" hidden></p>
+      <p class="steps-caption" id="steps-caption">예상 단계 · 서버가 단계를 알려 주지 않아 걸린 시간으로 짐작해 보여 드려요</p>
+      <ol id="steps" class="steps" aria-label="예상 진행 단계" aria-describedby="steps-caption">
+        <li data-step="upload"><span class="mark" aria-hidden="true">1</span><span>업로드</span><span class="sr-only step-state"></span></li>
+        <li data-step="extract"><span class="mark" aria-hidden="true">2</span><span>텍스트 추출</span><span class="sr-only step-state"></span></li>
+        <li data-step="summarize"><span class="mark" aria-hidden="true">3</span><span>요약</span><span class="sr-only step-state"></span></li>
+      </ol>
+      <div class="bar" aria-hidden="true"></div>
+      <p id="elapsed" class="elapsed">경과 0초</p>
+      <p id="progress-sub" class="progress-sub">보통 10~40초 걸려요.</p>
+      <button type="button" id="cancel-btn" class="btn btn-secondary">취소 (Esc)</button>
+    </section>
+
+    <p id="status-line" class="status-line" hidden></p>
+
+    <!-- 오류 알림: 영역은 항상 DOM에 두고 내용만 바꿔 스크린리더가 읽도록 함 -->
+    <div id="error-region" role="alert"></div>
+
+    <!-- 결과 -->
+    <article id="result" class="card result" hidden aria-labelledby="result-title">
+      <h2 id="result-title" class="card-title" tabindex="-1">요약 결과</h2>
+      <p id="result-file" class="file-name"></p>
+      <ul id="result-meta" class="result-meta" aria-label="문서 정보"></ul>
+      <aside id="result-notices" class="notices" hidden aria-labelledby="notices-title">
+        <h3 id="notices-title"><span aria-hidden="true">💡 </span>알아 두세요</h3>
+        <ul id="notices-list"></ul>
+      </aside>
+      <p class="one-line"><span class="one-line-label">한 줄 요약</span><span id="result-oneline"></span></p>
+      <h3 class="section-h">개요</h3>
+      <p id="result-overview" class="overview"></p>
+      <h3 class="section-h">핵심 요점</h3>
+      <ol id="result-points" class="points"></ol>
+      <div id="result-sections-wrap" hidden>
+        <h3 class="section-h">섹션별 요약</h3>
+        <div id="result-sections" class="sections"></div>
+      </div>
+      <div id="result-keywords-wrap" hidden>
+        <h3 class="section-h">키워드</h3>
+        <ul id="result-keywords" class="tags"></ul>
+      </div>
+      <div class="result-actions">
+        <button type="button" id="copy-all" class="btn btn-primary">전체 복사</button>
+        <button type="button" id="copy-md" class="btn btn-secondary">마크다운으로 복사</button>
+        <button type="button" id="copy-points" class="btn btn-secondary">요점만 복사</button>
+        <button type="button" id="new-file" class="btn btn-secondary">다른 PDF 요약하기</button>
+      </div>
+      <p id="copy-status" class="copy-status" aria-live="polite"></p>
+      <p id="result-model" class="model-line"></p>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <p>요약은 AI가 만든 글이라 틀리거나 빠진 내용이 있을 수 있어요. 중요한 내용은 원문으로 확인해 주세요.</p>
+  </footer>
+</div>
+
+<!-- 진행 단계·성공·취소 같은 상태 변화 알림용 -->
+<div id="live" class="sr-only" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+// file://로 열면 API를 부르지 않고 서버가 켜졌는지만 확인한 뒤 같은 출처 주소로 이동
+// (서버는 Origin: null·다른 출처의 /api/* 요청을 403으로 거부함)
+const IS_FILE = location.protocol === 'file:';
+const APP_ORIGIN = 'http://127.0.0.1:3000';
+const APP_URL = APP_ORIGIN + '/pdf';
+const DEFAULT_MAX_BYTES = 20 * 1024 * 1024;
+const HEALTH_TIMEOUT_MS = 6000;
+const PROBE_TIMEOUT_MS = 4000;
+const AUTO_RECHECK_MS = 5000;
+const AUTO_RECHECK_LIMIT_MS = 10 * 60 * 1000;
+// 서버 전체 상한(90초)보다 길게: 서버가 AI_TIMEOUT을 주지 못하는 경우의 안전 시간
+const POST_TIMEOUT_MS = 120000;
+const COPY_STATUS_MS = 2000;
+
+const $ = (id) => document.getElementById(id);
+const els = {
+  notice: $('server-notice'),
+  noticeTitle: $('server-notice-title'),
+  noticeBody: $('server-notice-body'),
+  healthRetry: $('health-retry'),
+  diaryLink: $('diary-link'),
+  uploadCard: $('upload-card'),
+  dropzone: $('dropzone'),
+  dropTitle: $('drop-title'),
+  dropSub: $('drop-sub'),
+  pick: $('pick-btn'),
+  fileInput: $('file-input'),
+  progress: $('progress'),
+  progressTitle: $('progress-title'),
+  busyNote: $('busy-note'),
+  progressFile: $('progress-file'),
+  steps: $('steps'),
+  elapsed: $('elapsed'),
+  progressSub: $('progress-sub'),
+  cancel: $('cancel-btn'),
+  statusLine: $('status-line'),
+  errorRegion: $('error-region'),
+  result: $('result'),
+  resultTitle: $('result-title'),
+  resultFile: $('result-file'),
+  resultMeta: $('result-meta'),
+  notices: $('result-notices'),
+  noticesList: $('notices-list'),
+  oneLine: $('result-oneline'),
+  overview: $('result-overview'),
+  points: $('result-points'),
+  sectionsWrap: $('result-sections-wrap'),
+  sections: $('result-sections'),
+  keywordsWrap: $('result-keywords-wrap'),
+  keywords: $('result-keywords'),
+  copyAll: $('copy-all'),
+  copyMd: $('copy-md'),
+  copyPoints: $('copy-points'),
+  newFile: $('new-file'),
+  copyStatus: $('copy-status'),
+  model: $('result-model'),
+  live: $('live')
+};
+
+const state = {
+  busy: false,
+  maxBytes: DEFAULT_MAX_BYTES,
+  lastFile: null,        // [다시 시도]가 다시 보낼 파일(메모리에만)
+  request: null,         // { controller, timedOut, cancelled }
+  tickTimer: 0,
+  busyNoteTimer: 0,
+  summary: null,
+  copyTimer: 0,
+  dragDepth: 0,
+  // file:// 전용
+  probing: false,
+  redirecting: false,
+  recheckTimer: 0,
+  recheckUntil: 0
+};
+
+class ClientError extends Error {
+  constructor(code, serverMessage, status) {
+    super(serverMessage || code);
+    this.code = code;
+    this.serverMessage = serverMessage || '';
+    this.status = status || 0;
+  }
+}
+
+// ---------- 순수 함수 (DOM·바깥 변수를 참조하지 않음: Node에서 떼어 시험 가능) ----------
+
+// 20971520 → "20MB" (서버 app.js의 formatMb와 같은 반올림)
+function formatMb(bytes) {
+  return `${Math.round((bytes / (1024 * 1024)) * 10) / 10}MB`;
+}
+
+// 보내기 전 검사. 통과하면 null, 아니면 { code, message } (PRD F-5·F-6 문구). 최종 판단은 서버
+function checkFiles(files, maxBytes) {
+  const list = Array.from(files || []);
+  const limit = Number(maxBytes) > 0 ? Number(maxBytes) : 20 * 1024 * 1024;
+  if (list.length === 0) return { code: 'LOCAL_NO_FILE', message: 'PDF 파일을 골라 주세요.' };
+  if (list.length > 1) return { code: 'LOCAL_MULTIPLE', message: '한 번에 PDF 1개만 올릴 수 있어요. 하나만 골라 주세요.' };
+  const file = list[0];
+  const name = String(file.name || '');
+  const type = String(file.type || '').toLowerCase();
+  const isPdf = /\.pdf$/i.test(name) || type === 'application/pdf';
+  if (!isPdf) return { code: 'LOCAL_NOT_PDF', message: 'PDF 파일만 올릴 수 있어요.' };
+  if (file.size > limit) return { code: 'LOCAL_TOO_LARGE', message: `파일이 너무 커요. ${formatMb(limit)} 이하 PDF만 올릴 수 있어요.` };
+  if (!file.size) return { code: 'LOCAL_EMPTY', message: '파일이 비어 있어요. 내용이 있는 PDF를 골라 주세요.' };
+  return null;
+}
+
+// 오류 → { title, message, action: 'retry' | 'other' | 'none' } (PRD 8.6 "재시도" 열)
+// 문구는 서버 message를 그대로 쓰고, 네트워크 오류·JSON 아닌 응답·화면 시간 초과만 화면 고정 문구를 씀.
+// 주의: Node에서 이 함수만 떼어 시험하므로 바깥 변수·함수를 참조하지 않음
+function describeError(err) {
+  const code = err && typeof err.code === 'string' ? err.code : '';
+  const serverMsg = err && typeof err.serverMessage === 'string' ? err.serverMessage.trim() : '';
+  const internalMsg = '서버에서 오류가 발생했어요. 잠시 후 다시 시도해 주세요.';
+  const table = {
+    NOT_PDF: ['PDF 파일이 아니에요', 'other', 'PDF 파일이 아니에요. 확장자만 .pdf인 다른 형식의 파일일 수 있어요. PDF 파일을 골라 주세요.'],
+    PDF_TOO_LARGE: ['파일이 너무 커요', 'other', '파일이 너무 커요. 20MB 이하 PDF만 올릴 수 있어요.'],
+    PDF_ENCRYPTED: ['암호가 걸린 PDF예요', 'other', '암호가 걸린 PDF는 읽을 수 없어요. 암호를 풀어 다시 저장한 뒤 올려 주세요.'],
+    PDF_CORRUPTED: ['파일이 손상된 것 같아요', 'other', 'PDF 파일이 손상되어 읽을 수 없어요. 원본 파일을 다시 저장하거나 다른 파일로 시도해 주세요.'],
+    PDF_NO_TEXT: ['문서에서 글자를 찾지 못했어요', 'other', '이 PDF에서 글자를 찾지 못했어요. 스캔한 이미지 PDF는 요약할 수 없어요. 텍스트를 선택할 수 있는 PDF로 올려 주세요.'],
+    PDF_TOO_COMPLEX: ['문서를 읽는 데 오래 걸려요', 'other', '문서를 읽는 데 너무 오래 걸려요. 페이지를 나눠 더 작은 PDF로 올려 주세요.'],
+    INVALID_INPUT: ['파일을 읽지 못했어요', 'other', '파일을 읽을 수 없어요. 다시 올려 주세요.'],
+    PDF_BUSY: ['다른 문서를 요약하고 있어요', 'retry', '다른 문서를 요약하고 있어요. 끝난 뒤 다시 시도해 주세요.'],
+    FORBIDDEN_ORIGIN: ['이 주소에서는 쓸 수 없어요', 'none', '이 주소에서는 PDF 요약을 쓸 수 없어요. http://127.0.0.1:3000/pdf 에서 열어 주세요.'],
+    CONFIG_ERROR: ['서버 설정이 필요해요', 'none', '서버에 AI API 키가 설정되지 않았습니다. 관리자에게 문의해 주세요.'],
+    CONTENT_BLOCKED: ['이 문서는 요약할 수 없어요', 'none', '이 문서는 AI 서비스의 안전 정책에 걸려 요약할 수 없어요.'],
+    AI_AUTH_ERROR: ['AI 연결 설정을 확인해 주세요', 'none', 'AI 서비스 인증에 문제가 있습니다. 관리자에게 문의해 주세요.'],
+    DAILY_LIMIT: ['오늘 무료 사용량을 모두 썼어요', 'none', '오늘 쓸 수 있는 무료 AI 요청을 모두 썼어요. 내일 다시 시도해 주세요. (일기 기능과 한도를 함께 써요)'],
+    RATE_LIMITED: ['지금은 AI 사용량이 많아요', 'retry', '지금은 AI 사용량이 많아요. 잠시 후 다시 시도해 주세요.'],
+    AI_TIMEOUT: ['요약이 너무 늦어지고 있어요', 'retry', 'AI 응답이 너무 늦어지고 있어요. 잠시 후 다시 시도해 주세요. 문서가 길면 더 오래 걸릴 수 있어요.'],
+    AI_BAD_RESPONSE: ['요약을 제대로 만들지 못했어요', 'retry', 'AI가 요약을 제대로 만들지 못했어요. 다시 시도해 주세요.'],
+    UPSTREAM_ERROR: ['AI 서비스가 잠시 불안정해요', 'retry', 'AI 서비스에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.'],
+    INTERNAL_ERROR: ['문제가 생겼어요', 'retry', internalMsg],
+    NOT_FOUND: ['PDF 요약 기능을 찾지 못했어요', 'none', '요청한 주소를 찾을 수 없습니다. 서버를 최신 버전으로 다시 시작해 주세요.']
+  };
+  // 화면에서 만든 오류: 고정 문구
+  if (code === 'NETWORK') {
+    return { title: '서버에 연결할 수 없어요', message: '서버에 연결할 수 없어요. start.bat으로 서버를 켠 뒤 다시 시도해 주세요.', action: 'retry' };
+  }
+  if (code === 'CLIENT_TIMEOUT') {
+    return { title: '요약이 너무 늦어지고 있어요', message: table.AI_TIMEOUT[2], action: 'retry' };
+  }
+  if (code === 'BAD_JSON') {
+    return { title: '문제가 생겼어요', message: internalMsg, action: 'retry' };
+  }
+  if (code.indexOf('LOCAL_') === 0) {
+    return { title: '이 파일은 올릴 수 없어요', message: serverMsg || 'PDF 파일만 올릴 수 있어요.', action: 'other' };
+  }
+  if (Object.prototype.hasOwnProperty.call(table, code)) {
+    const row = table[code];
+    return { title: row[0], message: serverMsg || row[2], action: row[1] };
+  }
+  // 모르는 코드(HTTP_502처럼 JSON이 아니던 응답 포함): 서버 문구가 있으면 그대로, 없으면 INTERNAL_ERROR 문구
+  return { title: '문제가 생겼어요', message: serverMsg || internalMsg, action: 'retry' };
+}
+
+// 쪽 번호 배지: keyPoints [3] → "p.3", [12,13] → "p.12-13", [3,7,9] → "p.3, 7, 9" / sections [3,15] → "p.3-15"
+function formatPages(pages, asRange) {
+  if (!Array.isArray(pages)) return '';
+  const nums = pages.filter((n) => Number.isInteger(n) && n > 0);
+  if (!nums.length) return '';
+  if (asRange) {
+    const lo = Math.min.apply(null, nums);
+    const hi = Math.max.apply(null, nums);
+    return lo === hi ? `p.${lo}` : `p.${lo}-${hi}`;
+  }
+  const uniq = nums.filter((n, i) => nums.indexOf(n) === i).sort((a, b) => a - b);
+  if (uniq.length === 1) return `p.${uniq[0]}`;
+  const consecutive = uniq.every((n, i) => i === 0 || n === uniq[i - 1] + 1);
+  if (consecutive) return `p.${uniq[0]}-${uniq[uniq.length - 1]}`;
+  return `p.${uniq.join(', ')}`;
+}
+
+// 처리 방식 → 사람이 읽는 말
+function methodLabel(method) {
+  if (method === 'full') return '전체 내용을 읽고 요약';
+  if (method === 'rerank') return '핵심 부분을 골라 요약';
+  if (method === 'head') return '앞·뒷부분 위주로 요약';
+  return '';
+}
+
+function languageLabel(lang) {
+  if (lang === 'ko') return '한국어';
+  if (lang === 'en') return '영어';
+  return '기타 언어';
+}
+
+// 서버 응답 정리: 예상과 다른 형태여도 화면이 깨지지 않게 함. summary가 없으면 null
+function normalizeSummary(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const str = (v) => (typeof v === 'string' ? v.trim() : '');
+  const int = (v) => (Number.isInteger(v) && v >= 0 ? v : null);
+  const pages = (v) => (Array.isArray(v) ? v.filter((n) => Number.isInteger(n) && n > 0) : []);
+  const doc = raw.document && typeof raw.document === 'object' ? raw.document : {};
+  const cov = raw.coverage && typeof raw.coverage === 'object' ? raw.coverage : {};
+  const oneLine = str(raw.oneLine);
+  if (!oneLine) return null;
+  return {
+    fileName: str(raw.fileName) || null,
+    document: {
+      pages: int(doc.pages),
+      processedPages: int(doc.processedPages),
+      language: str(doc.language),
+      title: str(doc.title) || null
+    },
+    oneLine,
+    overview: str(raw.overview),
+    keyPoints: (Array.isArray(raw.keyPoints) ? raw.keyPoints : [])
+      .map((p) => (p && typeof p === 'object' ? { text: str(p.text), pages: pages(p.pages) } : { text: str(p), pages: [] }))
+      .filter((p) => p.text),
+    sections: (Array.isArray(raw.sections) ? raw.sections : [])
+      .filter((s) => s && typeof s === 'object')
+      .map((s) => ({ title: str(s.title), summary: str(s.summary), pages: pages(s.pages) }))
+      .filter((s) => s.title || s.summary),
+    keywords: (Array.isArray(raw.keywords) ? raw.keywords : []).map(str).filter(Boolean),
+    method: str(cov.method),
+    notices: (Array.isArray(raw.notices) ? raw.notices : []).map(str).filter(Boolean),
+    model: str(raw.model),
+    rerankModel: str(raw.rerankModel) || null
+  };
+}
+
+// [전체 복사]: PRD 10.3 형식의 일반 텍스트
+function formatPlainText(s) {
+  const name = s.fileName || '이름 없는 문서';
+  const pageInfo = s.document && s.document.pages ? ` (${s.document.pages}쪽)` : '';
+  const out = [`[PDF 요약] ${name}${pageInfo}`, '', '한 줄 요약', s.oneLine, '', '개요', s.overview || '', '', '핵심 요점'];
+  s.keyPoints.forEach((p, i) => out.push(`${i + 1}. ${p.text}`));
+  if (s.sections.length) {
+    out.push('', '섹션별 요약');
+    s.sections.forEach((sec) => out.push(`- ${sec.title}${sec.title && sec.summary ? ': ' : ''}${sec.summary}`));
+  }
+  if (s.keywords.length) out.push('', `키워드: ${s.keywords.join(', ')}`);
+  s.notices.forEach((n) => out.push(`※ ${n}`));
+  return out.join('\n');
+}
+
+// [요점만 복사]: 한 줄 요약 + 핵심 요점
+function formatPointsText(s) {
+  const out = ['한 줄 요약', s.oneLine, '', '핵심 요점'];
+  s.keyPoints.forEach((p, i) => out.push(`${i + 1}. ${p.text}`));
+  return out.join('\n');
+}
+
+// [마크다운으로 복사]: 쪽 번호 근거 포함
+function formatMarkdown(s) {
+  // 모델 출력의 마크다운 문법 문자가 서식으로 바뀌지 않게 막음
+  const esc = (t) => String(t).replace(/([\\`*_[\]#<>|])/g, '\\$1');
+  const badge = (pages, asRange) => {
+    if (!Array.isArray(pages) || !pages.length) return '';
+    const nums = pages.slice().sort((a, b) => a - b);
+    const lo = nums[0];
+    const hi = nums[nums.length - 1];
+    if (asRange || nums.every((n, i) => i === 0 || n === nums[i - 1] + 1)) return lo === hi ? ` _(p.${lo})_` : ` _(p.${lo}-${hi})_`;
+    return ` _(p.${nums.join(', ')})_`;
+  };
+  const name = s.fileName || '이름 없는 문서';
+  const pageInfo = s.document && s.document.pages ? ` (${s.document.pages}쪽)` : '';
+  const out = [`# PDF 요약: ${esc(name)}${pageInfo}`, ''];
+  if (s.notices.length) {
+    s.notices.forEach((n) => out.push(`> ※ ${esc(n)}`));
+    out.push('');
+  }
+  out.push('## 한 줄 요약', '', `**${esc(s.oneLine)}**`, '', '## 개요', '', esc(s.overview || ''), '', '## 핵심 요점', '');
+  s.keyPoints.forEach((p, i) => out.push(`${i + 1}. ${esc(p.text)}${badge(p.pages, false)}`));
+  if (s.sections.length) {
+    out.push('', '## 섹션별 요약');
+    s.sections.forEach((sec) => out.push('', `### ${esc(sec.title || '섹션')}${badge(sec.pages, true)}`, '', esc(sec.summary)));
+  }
+  if (s.keywords.length) out.push('', '## 키워드', '', s.keywords.map((k) => '`' + String(k).replace(/`/g, "'") + '`').join(' '));
+  return out.join('\n');
+}
+
+// ---------- 공통 유틸 ----------
+function announce(text) {
+  // 같은 문구도 다시 읽히도록 비운 뒤 채움
+  els.live.textContent = '';
+  window.setTimeout(() => { els.live.textContent = text; }, 50);
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  return node;
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function withTimeout(ms) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, done: () => window.clearTimeout(timer) };
+}
+
+// JSON 응답 읽기. 오류 응답은 { error: { code, message } }
+async function readJson(res) {
+  try { return await res.json(); } catch (_) { return null; }
+}
+
+function errorFromResponse(res, data) {
+  const info = data && data.error && typeof data.error === 'object' ? data.error : null;
+  if (!info) return new ClientError('HTTP_' + res.status, '', res.status);
+  return new ClientError(typeof info.code === 'string' ? info.code : 'HTTP_' + res.status,
+    typeof info.message === 'string' ? info.message : '', res.status);
+}
+
+// ---------- 서버 상태 ----------
+function setNotice(kind, extra) {
+  let showRetry = true;
+  if (kind === 'opening') {
+    els.noticeTitle.textContent = '📑 PDF 요약 화면을 여는 중이에요…';
+    els.noticeBody.replaceChildren(el('p', '', '서버가 켜져 있는지 확인하고 바로 요약 화면으로 넘어갈게요. 잠시만 기다려 주세요.'));
+    showRetry = false;
+  } else if (kind === 'offline') {
+    els.noticeTitle.textContent = '💤 서버가 꺼져 있어요';
+    const p1 = el('p');
+    p1.append('프로젝트 폴더의 ', el('code', '', 'start.bat'), '을 더블클릭하거나, 터미널에서 ', el('code', '', 'npm start'), '를 입력해 서버를 켜 주세요.');
+    const p2 = IS_FILE
+      ? el('p', '', '서버가 켜지면 이 화면이 저절로 PDF 요약 화면(http://127.0.0.1:3000/pdf)으로 넘어가요. 바로 확인하려면 아래 버튼을 눌러 주세요.')
+      : el('p', '', '서버 창이 뜨고 나면 아래 버튼을 눌러 주세요.');
+    // 파일로 열었을 때 자동 이동은 기본 포트(3000)만 확인하므로 포트를 바꾼 경우를 한 줄로 안내
+    const p3 = IS_FILE ? el('p', 'notice-small', '서버 PORT를 바꿨다면 http://127.0.0.1:<PORT>/pdf 주소를 브라우저에서 직접 열어 주세요.') : null;
+    els.noticeBody.replaceChildren(...[p1, p2, p3].filter(Boolean));
+  } else if (kind === 'nokey') {
+    els.noticeTitle.textContent = '🔑 AI 연결 열쇠가 아직 없어요';
+    const p1 = el('p');
+    p1.append('프로젝트 폴더의 ', el('code', '', '.env'), ' 파일에 ', el('code', '', 'OPENROUTER_API_KEY=발급받은키'), '를 적은 뒤 서버를 다시 시작해 주세요. 그전에는 요약할 수 없어요.');
+    els.noticeBody.replaceChildren(p1);
+  } else if (kind === 'forbidden') {
+    els.noticeTitle.textContent = '🔒 이 주소에서는 쓸 수 없어요';
+    els.noticeBody.replaceChildren(el('p', '', extra || describeError({ code: 'FORBIDDEN_ORIGIN' }).message));
+    showRetry = false;
+  } else {
+    els.notice.hidden = true;
+    els.noticeBody.replaceChildren();
+    els.notice.dataset.kind = '';
+    return;
+  }
+  els.notice.dataset.kind = kind;
+  els.healthRetry.hidden = !showRetry;
+  els.notice.hidden = false;
+}
+
+// 확인 버튼: disabled 대신 aria-disabled를 써서 키보드 포커스를 잃지 않게 함
+function setRetryBusy(busy) {
+  els.healthRetry.setAttribute('aria-disabled', String(busy));
+  els.healthRetry.textContent = busy ? '확인하는 중…' : '다시 확인하기';
+}
+
+async function checkHealth(fromUser) {
+  if (els.healthRetry.getAttribute('aria-disabled') === 'true') return;
+  setRetryBusy(true);
+  const t = withTimeout(HEALTH_TIMEOUT_MS);
+  try {
+    let res;
+    try {
+      res = await fetch('/api/health', { signal: t.signal, headers: { Accept: 'application/json' }, cache: 'no-store' });
+    } catch (_) {
+      throw new ClientError('NETWORK');
+    }
+    const data = await readJson(res);
+    if (!res.ok) throw errorFromResponse(res, data);
+    const maxBytes = data && data.pdf && Number(data.pdf.maxBytes);
+    if (maxBytes > 0) state.maxBytes = maxBytes;
+    updateLimitText();
+    const noKey = data && data.hasApiKey === false;
+    setNotice(noKey ? 'nokey' : 'ok');
+    if (fromUser) {
+      announce(noKey ? '서버는 켜졌지만 AI 열쇠 설정이 필요해요.' : '서버와 연결됐어요. 이제 PDF를 올릴 수 있어요.');
+      if (!noKey) els.pick.focus();
+    }
+  } catch (err) {
+    if (err && err.code === 'FORBIDDEN_ORIGIN') {
+      setNotice('forbidden', err.serverMessage);
+    } else {
+      setNotice('offline');
+      if (fromUser) announce('아직 서버와 연결되지 않아요. 서버를 켠 뒤 다시 확인해 주세요.');
+    }
+  } finally {
+    t.done();
+    setRetryBusy(false);
+  }
+}
+
+function updateLimitText() {
+  els.dropSub.textContent = `또는 아래 버튼으로 골라 주세요. PDF 1개, ${formatMb(state.maxBytes)}까지 올릴 수 있어요.`;
+}
+
+// ---------- file:// 전용: 서버 생존 확인 후 같은 출처 주소로 이동 ----------
+// no-cors 요청은 응답을 읽을 수 없지만(opaque), 예외 없이 끝나면 서버가 켜진 것
+async function probeServer() {
+  const t = withTimeout(PROBE_TIMEOUT_MS);
+  try {
+    await fetch(APP_ORIGIN + '/api/health', { mode: 'no-cors', cache: 'no-store', signal: t.signal });
+    return true;
+  } catch (_) {
+    return false;
+  } finally {
+    t.done();
+  }
+}
+
+async function probeAndOpen(fromUser) {
+  if (state.probing || state.redirecting) return;
+  state.probing = true;
+  window.clearTimeout(state.recheckTimer);
+  if (fromUser) setRetryBusy(true);
+  const alive = await probeServer();
+  state.probing = false;
+  if (alive) {
+    state.redirecting = true;
+    setNotice('opening');
+    announce('PDF 요약 화면을 여는 중이에요.');
+    location.replace(APP_URL);
+    return;
+  }
+  setRetryBusy(false);
+  // 같은 안내를 다시 그리면 스크린리더가 반복해 읽으므로 처음 한 번만 바꿈
+  if (els.notice.dataset.kind !== 'offline') setNotice('offline');
+  if (fromUser) {
+    announce('아직 서버가 꺼져 있어요. start.bat으로 서버를 켜 주세요. 켜지면 저절로 요약 화면이 열려요.');
+    state.recheckUntil = Date.now() + AUTO_RECHECK_LIMIT_MS;
+  }
+  scheduleRecheck();
+}
+
+// 5초 간격으로 다시 확인(탭이 보일 때만, 10분이 지나면 멈춤)
+function scheduleRecheck() {
+  window.clearTimeout(state.recheckTimer);
+  if (Date.now() > state.recheckUntil) return;
+  state.recheckTimer = window.setTimeout(() => {
+    if (document.visibilityState === 'visible') probeAndOpen(false);
+    else scheduleRecheck();
+  }, AUTO_RECHECK_MS);
+}
+
+function initFileMode() {
+  // file://에서는 업로드를 시도하지 않음
+  els.uploadCard.hidden = true;
+  els.diaryLink.href = APP_ORIGIN + '/';
+  const skip = document.querySelector('.skip-link');
+  if (skip) { skip.href = '#server-notice'; skip.textContent = '안내로 바로 가기'; }
+  setNotice('opening');
+  state.recheckUntil = Date.now() + AUTO_RECHECK_LIMIT_MS;
+  els.healthRetry.addEventListener('click', () => {
+    if (els.healthRetry.getAttribute('aria-disabled') === 'true') return;
+    probeAndOpen(true);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !state.probing && !state.redirecting) probeAndOpen(false);
+  });
+  // file://에서도 페이지에 떨어뜨린 PDF를 브라우저가 열지 않게 함
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => e.preventDefault());
+  probeAndOpen(false);
+}
+
+// ---------- 오류·상태 표시 ----------
+function clearError() { els.errorRegion.replaceChildren(); }
+
+function setStatusLine(text) {
+  els.statusLine.textContent = text || '';
+  els.statusLine.hidden = !text;
+}
+
+function openPicker() {
+  if (state.busy) { showBusyNote(); return; }
+  els.fileInput.click();
+}
+
+// info: describeError 결과, fileName: 오류가 난 파일(있으면 표시)
+function showError(info, fileName) {
+  const box = el('div', 'alert-box');
+  const heading = el('h2', '', info.title);
+  heading.tabIndex = -1;
+  box.append(heading);
+  if (fileName) box.append(el('p', 'alert-file', `파일: ${fileName}`));
+  box.append(el('p', '', info.message));
+  let button = null;
+  if (info.action === 'retry') {
+    button = el('button', 'btn', '다시 시도');
+    button.addEventListener('click', () => { if (state.lastFile) startUpload(state.lastFile); });
+  } else if (info.action === 'other') {
+    button = el('button', 'btn', '다른 파일 고르기');
+    button.addEventListener('click', openPicker);
+  }
+  if (button) {
+    button.type = 'button';
+    const row = el('div', 'alert-actions');
+    row.append(button);
+    box.append(row);
+  }
+  els.errorRegion.replaceChildren(box);
+  return button || heading;
+}
+
+// ---------- 진행 상태 ----------
+// 서버가 단계별 진행을 알려 주지 않으므로(PRD 5절) 걸린 시간·파일 크기로 단계를 짐작해 보여 줌.
+// 단정하지 않도록 업로드 뒤 제목은 PRD 문구 하나("문서를 읽고 요약하는 중")로 두고, 단계 칩은 "예상 단계"로 표시
+const STEP_TEXT = {
+  upload: { title: '파일을 보내는 중이에요…' },
+  extract: { title: '문서를 읽고 요약하는 중이에요…' },
+  summarize: { title: '문서를 읽고 요약하는 중이에요…' }
+};
+
+// 경과 시간(ms)·파일 크기(바이트) → 예상 단계 (순수 함수)
+// 업로드: 최소 1.5초 + 약 10MB/s, 추출: 업로드 뒤 최소 3초 + 약 2MB/s (20MB면 업로드 3.5초, 추출은 16.5초까지)
+function estimateStep(ms, size) {
+  const bytes = Number(size) > 0 ? Number(size) : 0;
+  const uploadMs = 1500 + Math.round(bytes / 10000);
+  const extractMs = uploadMs + 3000 + Math.round(bytes / 2000);
+  if (ms < uploadMs) return 'upload';
+  if (ms < extractMs) return 'extract';
+  return 'summarize';
+}
+
+function setStep(step) {
+  const order = ['upload', 'extract', 'summarize'];
+  const at = order.indexOf(step);
+  els.steps.querySelectorAll('li').forEach((li) => {
+    const idx = order.indexOf(li.dataset.step);
+    const stateEl = li.querySelector('.step-state');
+    li.classList.toggle('is-done', idx < at);
+    if (idx === at) li.setAttribute('aria-current', 'step');
+    else li.removeAttribute('aria-current');
+    li.querySelector('.mark').textContent = idx < at ? '✓' : String(idx + 1);
+    stateEl.textContent = idx < at ? ' (지났을 것 같음)' : idx === at ? ' (지금쯤 진행 중)' : ' (대기)';
+  });
+  const title = STEP_TEXT[step].title;
+  if (els.progressTitle.textContent !== title) {
+    els.progressTitle.textContent = title;
+    // 제목이 바뀔 때만 알림(추출→요약은 제목이 같아 다시 읽지 않음)
+    if (step !== 'upload') announce(title);
+  }
+}
+
+function startProgress(file) {
+  const started = Date.now();
+  let step = '';
+  els.progressTitle.textContent = STEP_TEXT.upload.title;
+  const tick = () => {
+    const ms = Date.now() - started;
+    const sec = Math.floor(ms / 1000);
+    const next = estimateStep(ms, file && file.size);
+    if (next !== step) {
+      step = next;
+      setStep(step);
+    }
+    els.elapsed.textContent = `경과 ${sec}초`;
+    if (sec >= 60) els.progressSub.textContent = '문서가 길면 더 걸릴 수 있어요. 2분이 지나면 자동으로 멈춰요.';
+    else if (sec >= 40) els.progressSub.textContent = '조금 더 걸리고 있어요. 잠시만 더 기다려 주세요.';
+    else els.progressSub.textContent = '보통 10~40초 걸려요.';
+  };
+  window.clearInterval(state.tickTimer);
+  tick();
+  state.tickTimer = window.setInterval(tick, 1000);
+}
+
+function setBusy(busy, file) {
+  state.busy = busy;
+  els.dropzone.setAttribute('aria-disabled', String(busy));
+  els.pick.setAttribute('aria-disabled', String(busy));
+  els.fileInput.disabled = busy;
+  els.progress.hidden = !busy;
+  hideBusyNote();
+  if (busy) {
+    els.progressFile.textContent = file && file.name ? file.name : '';
+    startProgress(file);
+  } else {
+    window.clearInterval(state.tickTimer);
+  }
+}
+
+// 처리 중에 새 파일을 놓거나 골랐을 때: 진행 카드 안에 몇 초 동안 보이는 안내 + 스크린리더 알림
+const BUSY_NOTE_MS = 5000;
+function showBusyNote() {
+  const text = '지금 요약 중이에요. 끝나거나 취소한 뒤 다시 올려 주세요.';
+  els.busyNote.textContent = text;
+  els.busyNote.hidden = false;
+  window.clearTimeout(state.busyNoteTimer);
+  state.busyNoteTimer = window.setTimeout(hideBusyNote, BUSY_NOTE_MS);
+  announce(text);
+}
+
+function hideBusyNote() {
+  window.clearTimeout(state.busyNoteTimer);
+  els.busyNote.hidden = true;
+  els.busyNote.textContent = '';
+}
+
+// ---------- 업로드 ----------
+function handleFiles(files) {
+  if (state.busy) {
+    showBusyNote();
+    return;
+  }
+  setStatusLine('');
+  const problem = checkFiles(files, state.maxBytes);
+  if (problem) {
+    const list = Array.from(files || []);
+    const target = showError(describeError({ code: problem.code, serverMessage: problem.message }), list.length === 1 ? list[0].name : '');
+    target.focus();
+    return;
+  }
+  startUpload(files[0]);
+}
+
+async function startUpload(file) {
+  if (state.busy || !file) return;
+  state.lastFile = file;
+  // 새 요청을 시작하면 직전 결과·오류·안내를 숨김 (F-15)
+  clearError();
+  setStatusLine('');
+  hideResult();
+  const req = { controller: new AbortController(), timedOut: false, cancelled: false };
+  state.request = req;
+  const timer = window.setTimeout(() => { req.timedOut = true; req.controller.abort(); }, POST_TIMEOUT_MS);
+  setBusy(true, file);
+  els.cancel.focus();
+  announce(`${file.name} 파일을 보내는 중이에요. 취소하려면 Esc 키를 누르세요.`);
+
+  let summary = null;
+  let error = null;
+  try {
+    let res;
+    try {
+      res = await fetch('/api/pdf/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/pdf', 'X-File-Name': encodeURIComponent(file.name || ''), Accept: 'application/json' },
+        body: file,
+        signal: req.controller.signal
+      });
+    } catch (err) {
+      if (err && err.name === 'AbortError') throw err;
+      throw new ClientError('NETWORK');
+    }
+    const data = await readJson(res);
+    if (!res.ok) throw errorFromResponse(res, data);
+    summary = normalizeSummary(data && data.summary);
+    if (!summary) throw new ClientError('BAD_JSON', '', res.status);
+  } catch (err) {
+    error = err;
+  } finally {
+    window.clearTimeout(timer);
+  }
+  // 취소 뒤 늦게 도착한 응답은 버림
+  if (state.request !== req) return;
+  state.request = null;
+  setBusy(false);
+
+  if (error && error.name === 'AbortError') {
+    if (req.cancelled) return; // cancelUpload가 화면을 정리함
+    if (req.timedOut) error = new ClientError('CLIENT_TIMEOUT');
+    else error = new ClientError('NETWORK');
+  }
+  if (error) {
+    showError(describeError(error), file.name).focus();
+    return;
+  }
+  showResult(summary);
+}
+
+function cancelUpload() {
+  const req = state.request;
+  if (!req) return;
+  req.cancelled = true;
+  state.request = null;
+  req.controller.abort();
+  setBusy(false);
+  setStatusLine('요약을 취소했어요.');
+  announce('요약을 취소했어요.');
+  els.pick.focus();
+}
+
+// ---------- 결과 ----------
+function hideResult() {
+  els.result.hidden = true;
+  state.summary = null;
+  window.clearTimeout(state.copyTimer);
+  els.copyStatus.textContent = '';
+}
+
+// 모든 모델 출력은 textContent·요소 생성으로만 넣음(HTML 해석 금지)
+function pageBadge(pages, asRange) {
+  const text = formatPages(pages, asRange);
+  if (!text) return null;
+  const badge = el('span', 'badge');
+  badge.append(el('span', 'sr-only', ' 근거 '), document.createTextNode(text));
+  return badge;
+}
+
+function showResult(s) {
+  state.summary = s;
+  els.resultFile.textContent = s.fileName || '이름 없는 문서';
+  if (s.document.title && s.document.title !== s.fileName) els.resultFile.title = s.document.title;
+  else els.resultFile.removeAttribute('title');
+
+  const meta = [];
+  if (s.document.pages) {
+    const read = s.document.processedPages && s.document.processedPages < s.document.pages ? ` (앞 ${s.document.processedPages}쪽 읽음)` : '';
+    meta.push(`${s.document.pages}쪽${read}`);
+  }
+  meta.push(languageLabel(s.document.language));
+  if (methodLabel(s.method)) meta.push(methodLabel(s.method));
+  els.resultMeta.replaceChildren(...meta.map((m) => el('li', '', m)));
+
+  els.noticesList.replaceChildren(...s.notices.map((n) => el('li', '', n)));
+  els.notices.hidden = s.notices.length === 0;
+
+  els.oneLine.textContent = s.oneLine;
+  els.overview.textContent = s.overview || '개요가 없어요.';
+
+  els.points.replaceChildren(...s.keyPoints.map((p) => {
+    const li = el('li', '', p.text);
+    const badge = pageBadge(p.pages, false);
+    if (badge) li.append(badge);
+    return li;
+  }));
+  if (!s.keyPoints.length) els.points.replaceChildren(el('li', '', '요점이 없어요.'));
+
+  els.sections.replaceChildren(...s.sections.map((sec) => {
+    const details = el('details');
+    const summary = el('summary');
+    summary.append(el('span', 'sec-title', sec.title || '제목 없는 섹션'));
+    const badge = pageBadge(sec.pages, true);
+    if (badge) summary.append(badge);
+    details.append(summary, el('p', 'sec-body', sec.summary));
+    return details;
+  }));
+  els.sectionsWrap.hidden = s.sections.length === 0;
+
+  els.keywords.replaceChildren(...s.keywords.map((k) => el('li', '', k)));
+  els.keywordsWrap.hidden = s.keywords.length === 0;
+
+  let modelText = s.model ? `요약 모델: ${s.model}` : '';
+  if (s.rerankModel) modelText += `${modelText ? ' · ' : ''}핵심 부분 고르기: ${s.rerankModel}`;
+  els.model.textContent = modelText;
+  els.model.hidden = !modelText;
+
+  els.copyStatus.textContent = '';
+  els.copyStatus.classList.remove('is-error');
+  els.result.hidden = false;
+  els.resultTitle.focus({ preventScroll: true });
+  els.result.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  announce('요약이 끝났어요. 결과를 읽어 보세요.');
+}
+
+// ---------- 복사 ----------
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (_) { /* 아래 대체 방법으로 */ }
+  // 대체: 화면 밖 textarea + execCommand (권한 거부·오래된 브라우저)
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.position = 'fixed';
+  area.style.top = '-1000px';
+  document.body.append(area);
+  const active = document.activeElement;
+  area.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+  area.remove();
+  if (active && active.focus) active.focus();
+  return ok;
+}
+
+async function handleCopy(kind) {
+  const s = state.summary;
+  if (!s) return;
+  const text = kind === 'md' ? formatMarkdown(s) : kind === 'points' ? formatPointsText(s) : formatPlainText(s);
+  const ok = await copyText(text);
+  window.clearTimeout(state.copyTimer);
+  els.copyStatus.classList.toggle('is-error', !ok);
+  els.copyStatus.textContent = ok ? '복사했어요' : '복사하지 못했어요. 텍스트를 직접 선택해 복사해 주세요.';
+  if (ok) state.copyTimer = window.setTimeout(() => { els.copyStatus.textContent = ''; }, COPY_STATUS_MS);
+}
+
+// ---------- 드래그&드롭: 페이지 어디에 놓아도 받음 ----------
+function hasFiles(e) {
+  const types = e.dataTransfer && e.dataTransfer.types;
+  return !!types && Array.prototype.indexOf.call(types, 'Files') !== -1;
+}
+
+function setDragOver(on) {
+  els.dropzone.classList.toggle('is-dragover', on);
+  if (on) {
+    els.dropTitle.textContent = state.busy ? '요약하는 중이라 지금은 받을 수 없어요' : '여기에 놓으세요';
+  } else {
+    els.dropTitle.textContent = 'PDF 파일을 여기에 끌어 놓으세요';
+  }
+}
+
+function initDragDrop() {
+  window.addEventListener('dragenter', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    state.dragDepth += 1;
+    setDragOver(true);
+  });
+  window.addEventListener('dragover', (e) => {
+    // 기본 동작을 막아야 브라우저가 파일을 열지 않음(페이지 어디서든)
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = hasFiles(e) && !state.busy ? 'copy' : 'none';
+  });
+  window.addEventListener('dragleave', (e) => {
+    if (!hasFiles(e)) return;
+    state.dragDepth = Math.max(0, state.dragDepth - 1);
+    if (state.dragDepth === 0) setDragOver(false);
+  });
+  window.addEventListener('drop', (e) => {
+    e.preventDefault();
+    state.dragDepth = 0;
+    setDragOver(false);
+    if (!hasFiles(e)) return;
+    handleFiles(e.dataTransfer.files);
+  });
+}
+
+// ---------- 시작 ----------
+function init() {
+  if (IS_FILE) {
+    initFileMode();
+    return;
+  }
+  initDragDrop();
+  els.pick.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openPicker();
+  });
+  // 업로드 영역 아무 곳이나 눌러도 파일 대화상자(마우스 편의. 키보드는 버튼으로)
+  els.dropzone.addEventListener('click', (e) => {
+    if (e.target === els.fileInput) return;
+    openPicker();
+  });
+  els.fileInput.addEventListener('change', () => {
+    const files = els.fileInput.files;
+    if (files && files.length) handleFiles(files);
+    // 같은 파일을 다시 골라도 change가 일어나게 비움
+    els.fileInput.value = '';
+  });
+  els.cancel.addEventListener('click', cancelUpload);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state.busy) { e.preventDefault(); cancelUpload(); }
+  });
+  els.copyAll.addEventListener('click', () => handleCopy('plain'));
+  els.copyMd.addEventListener('click', () => handleCopy('md'));
+  els.copyPoints.addEventListener('click', () => handleCopy('points'));
+  els.newFile.addEventListener('click', () => {
+    els.pick.focus({ preventScroll: true });
+    els.uploadCard.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    openPicker();
+  });
+  els.healthRetry.addEventListener('click', () => checkHealth(true));
+  updateLimitText();
+  checkHealth(false);
+}
+
+init();
+</script>
+</body>
+</html>

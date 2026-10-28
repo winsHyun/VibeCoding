@@ -14,13 +14,18 @@ const formatHostName = (name) => (name.includes(":") ? `[${name}]` : name).toLow
 export function createOriginGuard({ hostNames = DEFAULT_HOST_NAMES } = {}) {
   const names = [...new Set(hostNames.filter(Boolean).map(formatHostName))];
   const allowedHosts = (port) => names.map((name) => `${name}:${port}`);
-  // 안내 문구에 넣을 이 서버 주소 (PORT를 바꿔도 실제 포트로 안내한다)
-  const forbiddenMessage = (port) => `이 주소에서는 일기장을 열 수 없어요. http://${names[0] ?? "127.0.0.1"}:${port} 에서 열어 주세요.`;
+  // 안내 문구에 넣을 이 서버 주소 (PORT를 바꿔도 실제 포트로 안내한다). PDF 요약 경로(/pdf, /api/pdf/*)는 PDF 화면 주소로 안내
+  const forbiddenMessage = (req) => {
+    const base = `http://${names[0] ?? "127.0.0.1"}:${req.socket.localPort}`;
+    // checkOrigin은 /api에 붙어 req.path가 "/pdf/..."이고, checkHost는 "/api/pdf/..."·"/pdf"다
+    if (/^\/(api\/)?pdf(\/|$)/.test(req.path)) return `이 주소에서는 PDF 요약을 쓸 수 없어요. ${base}/pdf 에서 열어 주세요.`;
+    return `이 주소에서는 일기장을 열 수 없어요. ${base} 에서 열어 주세요.`;
+  };
 
   function checkHost(req, res, next) {
     const host = String(req.headers.host ?? "").toLowerCase();
     if (!allowedHosts(req.socket.localPort).includes(host)) {
-      return next(new ApiError("FORBIDDEN_ORIGIN", forbiddenMessage(req.socket.localPort), `host not allowed: ${host.slice(0, 100)}`));
+      return next(new ApiError("FORBIDDEN_ORIGIN", forbiddenMessage(req), `host not allowed: ${host.slice(0, 100)}`));
     }
     next();
   }
@@ -30,7 +35,7 @@ export function createOriginGuard({ hostNames = DEFAULT_HOST_NAMES } = {}) {
     if (origin === undefined) return next();
     const allowed = allowedHosts(req.socket.localPort).map((h) => `http://${h}`);
     if (!allowed.includes(String(origin).toLowerCase())) {
-      return next(new ApiError("FORBIDDEN_ORIGIN", forbiddenMessage(req.socket.localPort), `origin not allowed: ${String(origin).slice(0, 100)}`));
+      return next(new ApiError("FORBIDDEN_ORIGIN", forbiddenMessage(req), `origin not allowed: ${String(origin).slice(0, 100)}`));
     }
     next();
   }

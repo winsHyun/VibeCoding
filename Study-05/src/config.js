@@ -52,6 +52,26 @@ export const config = {
     // 실패한 모델은 이 시간 동안 순서를 뒤로 미룬다 (실패한 요청도 하루 무료 한도를 쓴다)
     modelCooldownMs: 5 * 60 * 1000,
   },
+  // PDF 요약 (POST /api/pdf/summarize). 업로드·추출 상한은 PDF 폭탄 대비를 겸한다
+  pdf: {
+    // 긴 문서에서 핵심 조각을 고르는 rerank 모델. PDF_RERANK_MODEL= 로 비우면 rerank 없이 앞·뒷부분(head)으로 요약
+    rerankModel: process.env.PDF_RERANK_MODEL !== undefined ? process.env.PDF_RERANK_MODEL.trim() || null : "nvidia/llama-nemotron-rerank-vl-1b-v2:free",
+    maxBytes: num("PDF_MAX_BYTES", 20 * 1024 * 1024),
+    maxPages: num("PDF_MAX_PAGES", 200),
+    maxTextChars: num("PDF_MAX_TEXT_CHARS", 200000),
+    // 요약 모델에 넣을 텍스트 상한. 추출 텍스트가 이 이하면 rerank 없이 전체 요약(full)
+    contextChars: num("PDF_CONTEXT_CHARS", 20000),
+    // 문서 1건당 OpenRouter 호출 수(rerank 포함)와 전체 시간. 전체 시간은 화면 요청 타임아웃(120초)보다 짧게
+    maxCalls: num("PDF_AI_MAX_CALLS", 4),
+    totalTimeoutMs: num("PDF_TOTAL_TIMEOUT_MS", 90000),
+    callTimeoutMs: num("PDF_CALL_TIMEOUT_MS", 35000),
+    rerankTimeoutMs: num("PDF_RERANK_TIMEOUT_MS", 15000),
+    extractTimeoutMs: num("PDF_EXTRACT_TIMEOUT_MS", 15000),
+    // 요약 응답 max_tokens. 한국어 JSON(요점 7개·섹션 6개)이 2,000토큰 가까이 나와 잘리지 않게 PRD 값(2000)보다 넉넉히 둔다
+    summaryMaxTokens: num("PDF_SUMMARY_MAX_TOKENS", 3000),
+    // rerank 1회 호출에 보낼 조각 수 상한. 넘으면 조각 크기를 키워 맞춘다(OpenRouter 문서에 상한이 없어 PRD 가정값 128)
+    rerankMaxDocuments: num("PDF_RERANK_MAX_DOCUMENTS", 128),
+  },
 };
 
 export const hasApiKey = () => Boolean(process.env.OPENROUTER_API_KEY?.trim());

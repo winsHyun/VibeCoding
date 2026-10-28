@@ -57,7 +57,7 @@ export function classifyHttpError(status, message = "") {
   return err;
 }
 
-// 호출 1회: { content, finishReason, model } 반환, 실패하면 AiCallError
+// 호출 1회: { content, finishReason, model, usage } 반환, 실패하면 AiCallError
 export function createChat({ apiKey, fetchImpl = globalThis.fetch, baseUrl = BASE_URL, appTitle = "AI Empathy Diary" } = {}) {
   return async function chat({ model, messages, temperature, maxTokens, reasoningEffort, timeoutMs, signal }) {
     const timeout = AbortSignal.timeout(timeoutMs);
@@ -105,6 +105,73 @@ export function createChat({ apiKey, fetchImpl = globalThis.fetch, baseUrl = BAS
       content: typeof choice?.message?.content === "string" ? choice.message.content : "",
       finishReason: choice?.finish_reason ?? null,
       model: typeof data.model === "string" && data.model ? data.model : model,
+      // 토큰 사용량(로그용). 공급자가 안 주면 null
+      usage: data.usage && typeof data.usage === "object" ? data.usage : null,
+    };
+  };
+}
+
+// 숫자 또는 숫자 문자열 → 숫자 (빈 문자열·숫자 아님은 NaN)
+const toNumber = (v) => (typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN);
+// rerank 응답 결과 1개의 점수. 문서상 원본 필드는 relevance_score(SDK는 relevanceScore), NVIDIA NIM 형식은 logit
+const resultScore = (r) => toNumber(r?.relevance_score ?? r?.relevanceScore ?? r?.score ?? r?.logit);
+// 결과 배열: OpenRouter results, 다른 공급자 형식 data, NVIDIA NIM rankings
+const resultList = (data) => [data.results, data.data, data.rankings].find(Array.isArray);
+// 로그용 응답 모양 (원문 대신 키 이름만. 결과에 문서 원문 document.text가 들어 있을 수 있음)
+const describeShape = (data, list) =>
+  `keys: ${Object.keys(data).slice(0, 8).join(",") || "-"}; first result keys: ${list?.[0] && typeof list[0] === "object" ? Object.keys(list[0]).slice(0, 8).join(",") : "-"}; results: ${Array.isArray(list) ? list.length : "none"}`;
+
+// rerank 호출 1회: POST /rerank { model, query, documents, top_n }
+// → { results: [{ index, score }] (점수 높은 순), model, usage }. 실패하면 AiCallError (httpStatus에 HTTP 상태)
+// 재시도·다른 모델 전환은 하지 않는다(부르는 쪽이 실패 시 다른 경로로 간다).
+// 응답 형식(OpenRouter 문서 CreateRerankResponseBody): { id?, model, provider?, results: [{ index, relevance_score, document? }], usage? }
+export function createRerank({ apiKey, fetchImpl = globalThis.fetch, baseUrl = BASE_URL, appTitle = "AI Empathy Diary" } = {}) {
+  return async function rerank({ model, query, documents, topN = documents.length, timeoutMs, signal }) {
+    const timeout = AbortSignal.timeout(timeoutMs);
+    const callSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
+    let res;
+    let data;
+    try {
+      res = await fetchImpl(`${baseUrl}/rerank`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "X-Title": appTitle },
+        body: JSON.stringify({ model, query, documents, top_n: topN }),
+        signal: callSignal,
+      });
+      const raw = await res.text();
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        // 원문은 남기지 않고 길이만 (B-3)
+        data = { unparsable: `non-JSON body (len ${raw.length})` };
+      }
+    } catch (err) {
+      if (signal?.aborted) throw cancelledError(`${model} cancelled during rerank`);
+      if (timeout.aborted || err.name === "TimeoutError") throw new AiCallError("AI_TIMEOUT", "next", `${model} rerank timeout after ${timeoutMs}ms`);
+      throw new AiCallError("UPSTREAM_ERROR", "next", `${model} rerank network error: ${err.message}`);
+    }
+    if (!res.ok || data.error) {
+      const status = Number(data.error?.code) || res.status;
+      const message = [data.error?.message, data.error?.metadata?.raw].filter((v) => v != null).map(String).join(" | ");
+      const err = classifyHttpError(status === 200 ? 502 : status, `${model}: ${message || data.unparsable || `HTTP ${res.status}`}`);
+      err.httpStatus = status;
+      throw err;
+    }
+    // 형식 검증: index는 0~문서 수-1 정수, 점수는 유한한 숫자(숫자 문자열 허용). 하나라도 어긋나면 응답 전체를 믿지 않는다.
+    // 일부 문서만 결과에 와도 받아들인다(점수 없는 조각은 부르는 쪽이 원래 순서로 채움)
+    if (data.unparsable) throw new AiCallError("AI_BAD_RESPONSE", "next", `${model}: ${data.unparsable}`);
+    const list = resultList(data);
+    const parsed = Array.isArray(list) ? list.map((r) => ({ index: toNumber(r?.index), score: resultScore(r) })) : [];
+    const valid =
+      parsed.length > 0 && parsed.every((r) => Number.isInteger(r.index) && r.index >= 0 && r.index < documents.length && Number.isFinite(r.score));
+    if (!valid) throw new AiCallError("AI_BAD_RESPONSE", "next", `${model}: unexpected rerank body (${describeShape(data, list)})`);
+    // 같은 index가 여러 번 오면 처음 것만
+    const seen = new Set();
+    const unique = parsed.filter((r) => !seen.has(r.index) && seen.add(r.index));
+    return {
+      results: unique.sort((a, b) => b.score - a.score),
+      model: typeof data.model === "string" && data.model ? data.model : model,
+      usage: data.usage && typeof data.usage === "object" ? data.usage : null,
     };
   };
 }
