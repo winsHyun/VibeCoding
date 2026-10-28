@@ -1,0 +1,1551 @@
+<!-- 작성일시: 2026-10-27 14:57 -->
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="오늘 있었던 일을 한 줄로 적으면 AI 일기 친구가 마음을 읽고 공감과 위로를 전해 주는 다이어리">
+<title>마음 한 줄 일기 - AI 공감 다이어리</title>
+<!-- 파비콘: 인라인 SVG 이모지(별도 파일 요청·404 없음) -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%94%3C/text%3E%3C/svg%3E">
+<!-- 손글씨 제목·본문 웹폰트: 렌더링을 막지 않게 print로 받은 뒤 적용, 실패하면 아래 대체 폰트로 표시됨 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Dodum&display=swap" media="print" onload="this.media='all'">
+<style>
+  /* ---------- 색·폰트 변수 (밝은 테마) ---------- */
+  :root {
+    --font-body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+    --font-hand: "Gaegu", "Nanum Pen Script", "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+
+    --bg: #f6eddf;
+    --bg-dot: #ecdcc6;
+    --paper: #fffaf1;
+    --card-border: #eedfca;
+    --ink: #3f2e22;
+    --ink-soft: #6b5242;
+    --line: #efe0cc;
+    --field-bg: #fffdf9;
+    --field-border: #9a7c66;
+    --accent: #a4492a;
+    --accent-hover: #8a3b20;
+    --on-accent: #ffffff;
+    --accent-ink: #8a3b20;
+    --focus: #b4441c;
+    --tape: rgba(246, 201, 168, 0.75);
+    --chip-bg: #f7e6d3;
+    --error-bg: #fdecea;
+    --error-border: #d9958b;
+    --error-ink: #8c2318;
+    --warn-bg: #fff3d6;
+    --warn-border: #e2c27a;
+    --warn-ink: #5e4100;
+    /* 위기 안내: 경고색 대신 차분한 초록 */
+    --help-bg: #e8f4ef;
+    --help-border: #4f8f7b;
+    --help-ink: #1d4a3e;
+    --help-btn: #1d5c4b;
+    --on-help: #ffffff;
+    --shadow: 0 1px 2px rgba(80, 50, 30, 0.08), 0 8px 24px rgba(80, 50, 30, 0.08);
+  }
+
+  /* ---------- 다크 모드: 따뜻한 갈색 톤 유지 ---------- */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #221a15;
+      --bg-dot: #2c221b;
+      --paper: #2f241d;
+      --card-border: #45362b;
+      --ink: #f5e9dc;
+      --ink-soft: #d9c5b2;
+      --line: #43352b;
+      --field-bg: #261d17;
+      --field-border: #a88d77;
+      --accent: #f0a37f;
+      --accent-hover: #f6b998;
+      --on-accent: #2a1a10;
+      --accent-ink: #f6b998;
+      --focus: #ffc29f;
+      --tape: rgba(240, 163, 127, 0.35);
+      --chip-bg: #3d2f25;
+      --error-bg: #3d2220;
+      --error-border: #9c5148;
+      --error-ink: #ffd0c8;
+      --warn-bg: #362b16;
+      --warn-border: #8a6f33;
+      --warn-ink: #f7dfa6;
+      --help-bg: #1b2d28;
+      --help-border: #5fa892;
+      --help-ink: #d2eee5;
+      --help-btn: #a8dccb;
+      --on-help: #10291f;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.65;
+    color: var(--ink);
+    background-color: var(--bg);
+    /* 종이 질감 느낌의 잔잔한 점 무늬 */
+    background-image: radial-gradient(var(--bg-dot) 1px, transparent 1.2px);
+    background-size: 18px 18px;
+  }
+  h1, h2, h3 { line-height: 1.3; margin: 0; }
+  p { margin: 0; }
+  button { font: inherit; }
+
+  .sr-only {
+    position: absolute !important;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0 0 0 0);
+    white-space: nowrap; border: 0;
+  }
+
+  .skip-link {
+    position: absolute; left: 1rem; top: -4rem;
+    background: var(--accent); color: var(--on-accent);
+    padding: .75rem 1rem; border-radius: .75rem; z-index: 10;
+    text-decoration: none; font-weight: 700;
+  }
+  .skip-link:focus { top: 1rem; }
+
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+    border-radius: .5rem;
+  }
+  [tabindex="-1"]:focus { outline: none; }
+
+  .wrap {
+    width: 100%;
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  /* ---------- 상단 ---------- */
+  .diary-header { text-align: center; padding: .5rem .25rem 0; }
+  .today {
+    display: inline-block;
+    font-size: .95rem;
+    color: var(--ink-soft);
+    background: var(--paper);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    padding: .25rem .9rem;
+  }
+  .diary-header h1 {
+    margin-top: .5rem;
+    font-family: var(--font-hand);
+    font-weight: 700;
+    font-size: clamp(2.1rem, 9vw, 2.9rem);
+    letter-spacing: .02em;
+  }
+  .tagline { margin-top: .25rem; color: var(--ink-soft); word-break: keep-all; }
+
+  /* ---------- 카드 공통 ---------- */
+  .card {
+    position: relative;
+    margin-top: 1.25rem;
+    padding: 1.25rem;
+    background: var(--paper);
+    border: 1px solid var(--card-border);
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-family: var(--font-hand);
+    font-weight: 700;
+    font-size: 1.6rem;
+  }
+
+  /* ---------- 버튼 ---------- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+    min-height: 2.75rem; min-width: 2.75rem;
+    padding: .5rem 1.25rem;
+    border-radius: 999px;
+    border: 2px solid var(--accent);
+    font-weight: 700;
+    line-height: 1.2;
+    cursor: pointer;
+    text-align: center;
+    word-break: keep-all;
+    transition: background-color .15s ease, color .15s ease, transform .1s ease;
+  }
+  .btn-primary { background: var(--accent); color: var(--on-accent); min-height: 3rem; padding: .6rem 1.6rem; font-size: 1.05rem; }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-secondary { background: transparent; color: var(--accent-ink); }
+  .btn-secondary:hover { background: var(--chip-bg); }
+  .btn:active { transform: translateY(1px); }
+  .btn[aria-disabled="true"] { opacity: .55; cursor: not-allowed; }
+  .btn[aria-disabled="true"]:active { transform: none; }
+  .btn:disabled { opacity: .55; cursor: progress; }
+
+  /* ---------- 서버 상태 안내 ---------- */
+  .notice {
+    margin-top: 1.25rem;
+    padding: 1.1rem 1.25rem;
+    border-radius: 1.25rem;
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+    border: 2px dashed var(--warn-border);
+  }
+  .notice h2 { font-family: var(--font-hand); font-size: 1.5rem; }
+  .notice p { margin-top: .4rem; word-break: keep-all; overflow-wrap: anywhere; }
+  .notice .notice-small { font-size: .9rem; }
+  .notice .btn { margin-top: .85rem; border-color: currentColor; color: inherit; background: transparent; }
+  .notice .btn:hover { background: rgba(255, 255, 255, .35); }
+  code {
+    font-family: Consolas, "D2Coding", monospace;
+    font-size: .92em;
+    background: rgba(255, 255, 255, .55);
+    border: 1px solid var(--warn-border);
+    border-radius: .35rem;
+    padding: 0 .3rem;
+    white-space: nowrap;
+    overflow-wrap: anywhere;
+  }
+  @media (prefers-color-scheme: dark) { code { background: rgba(0, 0, 0, .25); } }
+
+  /* ---------- 작성 영역 ---------- */
+  .write-card { padding-top: 1.1rem; }
+  .write-label { display: block; margin-top: .35rem; color: var(--ink-soft); word-break: keep-all; }
+  .input-row { display: flex; flex-direction: column; gap: .75rem; margin-top: .75rem; }
+  .entry-input {
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+    padding: .7rem 1rem;
+    font: inherit;
+    font-size: 1.0625rem;
+    color: var(--ink);
+    background: var(--field-bg);
+    border: 2px solid var(--field-border);
+    border-radius: .9rem;
+  }
+  .entry-input::placeholder { color: var(--ink-soft); opacity: 1; }
+  .entry-input:focus-visible { outline-offset: 2px; border-radius: .9rem; }
+  .entry-input[readonly] { background: var(--bg); }
+  .entry-input[aria-invalid="true"] { border-color: var(--error-ink); }
+  .form-meta {
+    display: flex; flex-wrap: wrap; justify-content: space-between; gap: .25rem 1rem;
+    margin-top: .5rem;
+    font-size: .9rem;
+    color: var(--ink-soft);
+  }
+  .count.is-near { color: var(--accent-ink); font-weight: 700; }
+  .field-note { margin-top: .5rem; color: var(--ink-soft); font-weight: 700; word-break: keep-all; }
+  .field-error {
+    margin-top: .5rem;
+    color: var(--error-ink);
+    font-weight: 700;
+    word-break: keep-all;
+  }
+  .field-error::before { content: "✎ "; }
+
+  @media (min-width: 36rem) {
+    .input-row { flex-direction: row; align-items: stretch; }
+    .input-row .btn-primary { flex: none; }
+  }
+
+  /* ---------- 로딩 ---------- */
+  .loading-card { text-align: center; }
+  .loading-dots { display: flex; justify-content: center; gap: .6rem; margin: .25rem 0 .75rem; font-size: 1.5rem; }
+  .loading-dots span { display: inline-block; animation: float 1.4s ease-in-out infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: .2s; }
+  .loading-dots span:nth-child(3) { animation-delay: .4s; }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); opacity: .55; }
+    50% { transform: translateY(-6px); opacity: 1; }
+  }
+  .loading-text { font-family: var(--font-hand); font-size: 1.6rem; font-weight: 700; }
+  .loading-sub { margin-top: .25rem; color: var(--ink-soft); word-break: keep-all; }
+  .loading-card .btn { margin-top: 1rem; }
+
+  /* ---------- 오류 ---------- */
+  .alert-box {
+    margin-top: 1.25rem;
+    padding: 1.1rem 1.25rem;
+    border-radius: 1.25rem;
+    background: var(--error-bg);
+    color: var(--error-ink);
+    border: 2px solid var(--error-border);
+  }
+  .alert-box h2, .alert-box h3 { font-size: 1.1rem; font-weight: 700; }
+  .alert-box p { margin-top: .35rem; word-break: keep-all; overflow-wrap: anywhere; }
+  .alert-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .85rem; }
+  .alert-box .btn { color: inherit; border-color: currentColor; background: transparent; }
+  .alert-box .btn:hover { background: rgba(255, 255, 255, .4); }
+  @media (prefers-color-scheme: dark) { .alert-box .btn:hover { background: rgba(0, 0, 0, .25); } }
+  a.btn { text-decoration: none; }
+
+  /* ---------- 위기 안내(결과 카드 위, 지난 일기 항목 안) ---------- */
+  .crisis-box {
+    margin-top: 1.25rem;
+    padding: 1.1rem 1.25rem;
+    border-radius: 1.25rem;
+    background: var(--help-bg);
+    color: var(--help-ink);
+    border: 2px solid var(--help-border);
+  }
+  .crisis-box h2 { font-family: var(--font-hand); font-size: 1.5rem; word-break: keep-all; overflow-wrap: anywhere; }
+  .crisis-box p { margin-top: .4rem; word-break: keep-all; overflow-wrap: anywhere; }
+  .help-links { list-style: none; margin: .85rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+  .help-link {
+    display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+    min-height: 2.75rem;
+    padding: .5rem 1.15rem;
+    border-radius: 999px;
+    border: 2px solid var(--help-btn);
+    background: var(--help-btn);
+    color: var(--on-help);
+    font-weight: 700;
+    line-height: 1.25;
+    text-decoration: none;
+    word-break: keep-all;
+  }
+  .help-link:hover { filter: brightness(1.1); }
+  .nowrap { white-space: nowrap; }
+  .help-link.is-quiet { background: transparent; color: var(--help-ink); border-color: currentColor; }
+  .crisis-box .crisis-sub { margin-top: .75rem; font-size: .92rem; }
+  .entry-crisis {
+    margin-top: .6rem;
+    padding: .2rem .8rem;
+    line-height: 1.5;
+    border-radius: .75rem;
+    background: var(--help-bg);
+    color: var(--help-ink);
+    border: 1px solid var(--help-border);
+    font-size: .95rem;
+    word-break: keep-all;
+  }
+  .entry-crisis a {
+    /* 줄 안에 두되 터치 영역은 44px 높이 확보 */
+    display: inline-block;
+    min-height: 2.75rem;
+    padding: .65rem 0;
+    color: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: .2em;
+  }
+
+  /* ---------- 감정별 색(장식용, 감정 이름은 항상 글자로도 표시) ---------- */
+  [data-emotion] { --emo: #d7b98e; --emo-soft: #f6ead8; }
+  [data-emotion="joy"] { --emo: #f2b84b; --emo-soft: #fdf0d2; }
+  [data-emotion="sadness"] { --emo: #7fa7d6; --emo-soft: #e4eef9; }
+  [data-emotion="anger"] { --emo: #e07a5f; --emo-soft: #fbe4dd; }
+  [data-emotion="anxiety"] { --emo: #b59ad8; --emo-soft: #efe7f8; }
+  [data-emotion="tired"] { --emo: #a3a3b8; --emo-soft: #ececf2; }
+  [data-emotion="calm"] { --emo: #8cc4a8; --emo-soft: #e3f3ea; }
+  [data-emotion="gratitude"] { --emo: #f2a2b8; --emo-soft: #fde7ee; }
+  [data-emotion="lonely"] { --emo: #9fb6c9; --emo-soft: #e6eef4; }
+  [data-emotion="mixed"] { --emo: #d7b98e; --emo-soft: #f6ead8; }
+  @media (prefers-color-scheme: dark) {
+    [data-emotion] { --emo-soft: #3d2f25; }
+  }
+
+  /* ---------- 결과 카드(편지) ---------- */
+  .letter { margin-top: 2rem; padding-top: 1.75rem; border-top: 6px solid var(--emo); }
+  .letter::before {
+    /* 마스킹 테이프 장식 */
+    content: "";
+    position: absolute;
+    top: -1rem; left: 50%;
+    width: 6.5rem; height: 1.5rem;
+    transform: translateX(-50%) rotate(-3deg);
+    background: var(--tape);
+    border-radius: .2rem;
+  }
+  .quote {
+    margin: .9rem 0 0;
+    padding: .6rem 1rem;
+    border-left: 4px solid var(--emo);
+    background: var(--bg);
+    border-radius: 0 .75rem .75rem 0;
+    color: var(--ink-soft);
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .quote::before { content: "오늘의 한 줄 · "; font-size: .85rem; }
+  .emotion-panel {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem;
+    margin-top: 1rem;
+    padding: .9rem 1rem;
+    border-radius: 1rem;
+    background: var(--emo-soft);
+  }
+  .emotion-emoji {
+    flex: none;
+    display: grid; place-items: center;
+    width: 3.5rem; height: 3.5rem;
+    font-size: 2rem;
+    border-radius: 50%;
+    background: var(--paper);
+    border: 3px solid var(--emo);
+  }
+  .emotion-info { flex: 1 1 12rem; min-width: 0; }
+  .emotion-label { font-size: 1.25rem; font-weight: 700; }
+  .intensity { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: .15rem; color: var(--ink-soft); font-size: .95rem; }
+  .meter { display: inline-flex; gap: .25rem; }
+  .meter i {
+    display: inline-block; width: .8rem; height: .8rem; border-radius: 50%;
+    border: 2px solid var(--ink-soft);
+  }
+  .meter i.on { background: var(--ink-soft); }
+  .tags { display: flex; flex-wrap: wrap; gap: .4rem; margin: .6rem 0 0; padding: 0; list-style: none; }
+  .tags li {
+    padding: .15rem .65rem;
+    border-radius: 999px;
+    background: var(--paper);
+    border: 1px solid var(--card-border);
+    font-size: .9rem;
+    overflow-wrap: anywhere;
+  }
+  .letter-body {
+    margin-top: 1.25rem;
+    line-height: 2rem;
+    /* 노트 줄 무늬 */
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(2rem - 1px), var(--line) calc(2rem - 1px), var(--line) 2rem);
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  .salutation, .signature { font-family: var(--font-hand); font-size: 1.3rem; font-weight: 700; }
+  .signature { text-align: right; margin-top: .75rem; }
+  .comfort {
+    margin-top: 1.25rem;
+    padding: 1rem 1.1rem;
+    border-radius: 1rem;
+    border: 2px dashed var(--emo);
+    background: var(--bg);
+  }
+  .comfort h3 { font-size: 1rem; color: var(--ink-soft); }
+  .comfort p { margin-top: .25rem; font-family: var(--font-hand); font-size: 1.35rem; font-weight: 700; line-height: 1.5; word-break: keep-all; overflow-wrap: anywhere; }
+  .letter-actions { display: flex; justify-content: center; margin-top: 1.25rem; }
+
+  /* ---------- 지난 일기 ---------- */
+  .history { margin-top: 2.25rem; }
+  .history-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .25rem 1rem; }
+  .history-head h2 { font-family: var(--font-hand); font-size: 1.75rem; }
+  .history-count { color: var(--ink-soft); font-size: .95rem; }
+  .history-status { margin-top: .75rem; color: var(--ink-soft); word-break: keep-all; }
+  .empty {
+    margin-top: 1rem;
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+    border: 2px dashed var(--card-border);
+    border-radius: 1.25rem;
+    color: var(--ink-soft);
+    word-break: keep-all;
+  }
+  .empty .big { display: block; font-size: 2rem; }
+  .entries { list-style: none; margin: 0; padding: 0; }
+  .entry {
+    margin-top: 1rem;
+    padding: 1rem 1.1rem;
+    background: var(--paper);
+    border: 1px solid var(--card-border);
+    border-left: 6px solid var(--emo);
+    border-radius: 1rem;
+    box-shadow: var(--shadow);
+  }
+  .entry-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem .75rem; }
+  .entry-date { font-size: .95rem; font-weight: 700; color: var(--ink-soft); }
+  .chip {
+    display: inline-flex; align-items: center; gap: .3rem;
+    padding: .15rem .7rem;
+    border-radius: 999px;
+    background: var(--emo-soft);
+    border: 1px solid var(--emo);
+    font-size: .9rem;
+  }
+  .entry-text { margin-top: .5rem; font-size: 1.05rem; font-weight: 700; word-break: keep-all; overflow-wrap: anywhere; }
+  .entry-empathy { margin-top: .4rem; word-break: keep-all; overflow-wrap: anywhere; }
+  .entry-comfort { margin-top: .4rem; font-family: var(--font-hand); font-size: 1.2rem; font-weight: 700; word-break: keep-all; overflow-wrap: anywhere; }
+  .entry .tags li { background: var(--bg); }
+  .entry-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .5rem; margin-top: .75rem; }
+  .confirm-text { flex: 1 1 100%; font-weight: 700; color: var(--error-ink); word-break: keep-all; }
+  .btn-danger { background: var(--error-ink); border-color: var(--error-ink); color: var(--paper); }
+  .btn-danger:hover { filter: brightness(1.1); }
+
+  .site-footer { margin-top: 2.5rem; font-size: .88rem; color: var(--ink-soft); text-align: center; word-break: keep-all; }
+  .site-footer p + p { margin-top: .35rem; }
+
+  @media (min-width: 48rem) {
+    .wrap { padding: 2.5rem 1.5rem 4rem; }
+    .card { padding: 1.5rem 1.75rem; }
+    .letter { padding-top: 2rem; }
+  }
+
+  /* 움직임 줄이기 설정 존중 */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .001ms !important;
+      scroll-behavior: auto !important;
+    }
+    .loading-dots span { opacity: 1; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#entry-input">일기 쓰기로 바로 가기</a>
+
+<div class="wrap">
+  <header class="diary-header">
+    <p class="today"><time id="today"></time></p>
+    <h1>마음 한 줄 일기</h1>
+    <p class="tagline">오늘 있었던 일을 한 줄로 적어 주세요. 일기 친구가 마음을 읽고 답장을 보내 드려요.</p>
+  </header>
+
+  <main id="main">
+    <noscript>
+      <div class="notice"><p>이 일기장은 자바스크립트가 켜져 있어야 동작해요. 브라우저 설정에서 자바스크립트를 켜 주세요.</p></div>
+    </noscript>
+
+    <!-- 서버 상태 안내(file://에서 이동 중 / 꺼짐 / API 키 없음 / 다른 주소) -->
+    <section id="server-notice" class="notice" hidden aria-labelledby="server-notice-title">
+      <h2 id="server-notice-title"></h2>
+      <div id="server-notice-body"></div>
+      <button type="button" id="health-retry" class="btn">다시 확인하기</button>
+    </section>
+
+    <!-- 작성 영역 -->
+    <section id="write-card" class="card write-card" aria-labelledby="write-title">
+      <h2 id="write-title" class="card-title">오늘의 한 줄</h2>
+      <form id="entry-form" novalidate>
+        <label class="write-label" for="entry-input">오늘 있었던 일이나 지금 마음을 한 줄로 적어 주세요.</label>
+        <div class="input-row">
+          <!-- 글자 수 제한은 스크립트가 코드 포인트 기준 300자로 맞춤(maxlength는 UTF-16 기준이라 아주 긴 붙여 넣기만 막는 안전장치로 넉넉히 둠) -->
+          <input id="entry-input" class="entry-input" type="text" name="text" maxlength="2000"
+                 autocomplete="off" enterkeyhint="send"
+                 placeholder="예) 발표를 끝내고 나니 긴장이 확 풀렸어"
+                 aria-describedby="entry-hint entry-count entry-error entry-note">
+          <button type="submit" id="submit-btn" class="btn btn-primary" aria-disabled="true">마음 전하기</button>
+        </div>
+        <div class="form-meta">
+          <p id="entry-hint">Enter 키를 눌러도 전할 수 있어요.</p>
+          <p id="entry-count" class="count">0 / 300자</p>
+        </div>
+        <p id="entry-error" class="field-error" hidden></p>
+        <p id="entry-note" class="field-note" hidden></p>
+      </form>
+    </section>
+
+    <!-- 로딩 -->
+    <section id="loading" class="card loading-card" hidden aria-labelledby="loading-title">
+      <div class="loading-dots" aria-hidden="true"><span>💌</span><span>✏️</span><span>💛</span></div>
+      <h2 id="loading-title" class="loading-text">마음을 읽고 있어요…</h2>
+      <p class="loading-sub" id="loading-sub">일기 친구가 천천히 답장을 쓰고 있어요. 30초 넘게 걸릴 수도 있어요.</p>
+      <p class="loading-sub" id="loading-elapsed" aria-hidden="true"></p>
+      <button type="button" id="cancel-btn" class="btn btn-secondary">그만 기다리기 (Esc)</button>
+    </section>
+
+    <!-- 오류 알림: 영역은 항상 DOM에 두고 내용만 바꿔 스크린리더가 읽도록 함 -->
+    <div id="error-region" role="alert"></div>
+
+    <!-- 위기 안내: 서버가 entry.crisis=true를 줄 때 결과 카드 위에 표시 -->
+    <aside id="crisis-box" class="crisis-box" hidden aria-labelledby="crisis-title">
+      <h2 id="crisis-title" tabindex="-1"><span aria-hidden="true">💚 </span>혼자 견디지 않아도 괜찮아요</h2>
+      <p>지금 바로 전화해도 괜찮아요. 이야기를 들어 줄 사람이 늘 기다리고 있어요.</p>
+      <ul class="help-links">
+        <li><a class="help-link" href="tel:109"><span aria-hidden="true">📞</span><span>자살예방상담전화 <span class="nowrap">109 (24시간)</span></span></a></li>
+        <li><a class="help-link is-quiet" href="tel:15770199"><span aria-hidden="true">📞</span><span>정신건강위기상담전화 <span class="nowrap">1577-0199</span></span></a></li>
+      </ul>
+      <p class="crisis-sub">위험이 급하게 느껴진다면 112나 119에 바로 연락해 주세요.</p>
+    </aside>
+
+    <!-- 결과 카드 -->
+    <section id="result" class="card letter" hidden aria-labelledby="result-title" data-emotion="mixed">
+      <h2 id="result-title" class="card-title" tabindex="-1">일기 친구의 답장</h2>
+      <blockquote id="result-quote" class="quote"></blockquote>
+      <div class="emotion-panel">
+        <span id="result-emoji" class="emotion-emoji" aria-hidden="true"></span>
+        <div class="emotion-info">
+          <p><span class="sr-only">오늘의 감정: </span><span id="result-label" class="emotion-label"></span></p>
+          <div id="result-intensity" class="intensity"></div>
+          <ul id="result-tags" class="tags" aria-label="감정 키워드"></ul>
+        </div>
+      </div>
+      <div class="letter-body">
+        <p class="salutation">To. 오늘의 나에게</p>
+        <p id="result-empathy"></p>
+      </div>
+      <div class="comfort">
+        <h3>위로 한마디</h3>
+        <p id="result-comfort"></p>
+      </div>
+      <p class="signature">From. 일기 친구</p>
+      <div class="letter-actions">
+        <button type="button" id="write-again" class="btn btn-secondary">다른 이야기 쓰기</button>
+      </div>
+    </section>
+
+    <!-- 지난 일기 -->
+    <section id="history" class="history" aria-labelledby="history-title">
+      <div class="history-head">
+        <h2 id="history-title" tabindex="-1">지난 일기</h2>
+        <p id="history-count" class="history-count"></p>
+      </div>
+      <div id="history-alert" role="alert"></div>
+      <p id="history-status" class="history-status"></p>
+      <ul id="entries" class="entries"></ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>답장은 AI가 쓴 글이라 전문 상담을 대신하지는 못해요.</p>
+    <p>마음이 많이 힘들 때는 자살예방상담전화 109, 정신건강위기상담전화 <span class="nowrap">1577-0199</span>에서 언제든 이야기를 들어 줘요.</p>
+  </footer>
+</div>
+
+<!-- 로딩·성공 등 상태 변화 알림용 -->
+<div id="live" class="sr-only" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+
+// file://로 열면 API를 부르지 않고 서버가 켜졌는지만 확인한 뒤 같은 출처 주소로 이동
+// (서버는 Origin: null·다른 출처의 /api/* 요청을 403으로 거부함)
+const IS_FILE = location.protocol === 'file:';
+const APP_URL = 'http://127.0.0.1:3000/';
+const MAX_LEN = 300; // 서버와 같은 코드 포인트 기준
+const NEAR_LIMIT = 280;
+const HEALTH_TIMEOUT_MS = 6000;
+const PROBE_TIMEOUT_MS = 4000;
+const AUTO_RECHECK_MS = 5000;
+const AUTO_RECHECK_LIMIT_MS = 10 * 60 * 1000;
+const LIST_TIMEOUT_MS = 15000;
+// 서버가 AI_TIMEOUT을 주지 못하는 경우를 대비한 클라이언트 안전 시간
+const POST_TIMEOUT_MS = 120000;
+
+// 감정별 이모지(라벨은 서버 값을 우선 사용)
+const EMOTIONS = {
+  joy: { emoji: '😊', label: '기쁨' },
+  sadness: { emoji: '😢', label: '슬픔' },
+  anger: { emoji: '😠', label: '화남' },
+  anxiety: { emoji: '😟', label: '불안' },
+  tired: { emoji: '😮‍💨', label: '지침' },
+  calm: { emoji: '😌', label: '평온' },
+  gratitude: { emoji: '🥰', label: '감사' },
+  lonely: { emoji: '🥺', label: '외로움' },
+  mixed: { emoji: '🌀', label: '복합적인 마음' }
+};
+const INTENSITY_WORDS = ['', '아주 살짝', '조금', '보통', '꽤 크게', '아주 크게'];
+
+const $ = (id) => document.getElementById(id);
+const els = {
+  today: $('today'),
+  notice: $('server-notice'),
+  noticeTitle: $('server-notice-title'),
+  noticeBody: $('server-notice-body'),
+  healthRetry: $('health-retry'),
+  writeCard: $('write-card'),
+  history: $('history'),
+  form: $('entry-form'),
+  input: $('entry-input'),
+  submit: $('submit-btn'),
+  count: $('entry-count'),
+  fieldError: $('entry-error'),
+  fieldNote: $('entry-note'),
+  crisis: $('crisis-box'),
+  crisisTitle: $('crisis-title'),
+  loading: $('loading'),
+  loadingElapsed: $('loading-elapsed'),
+  loadingSub: $('loading-sub'),
+  cancel: $('cancel-btn'),
+  errorRegion: $('error-region'),
+  result: $('result'),
+  resultTitle: $('result-title'),
+  resultQuote: $('result-quote'),
+  resultEmoji: $('result-emoji'),
+  resultLabel: $('result-label'),
+  resultIntensity: $('result-intensity'),
+  resultTags: $('result-tags'),
+  resultEmpathy: $('result-empathy'),
+  resultComfort: $('result-comfort'),
+  writeAgain: $('write-again'),
+  historyTitle: $('history-title'),
+  historyCount: $('history-count'),
+  historyAlert: $('history-alert'),
+  historyStatus: $('history-status'),
+  entries: $('entries'),
+  live: $('live')
+};
+
+const state = {
+  busy: false,
+  controller: null,
+  elapsedTimer: null,
+  entries: [],
+  listLoaded: false,
+  composing: false,
+  // file:// 전용: 서버 생존 확인 상태
+  probing: false,
+  redirecting: false,
+  recheckTimer: 0,
+  recheckUntil: 0,
+  // 취소 뒤 목록 조용히 맞추기
+  syncTimer: 0,
+  deletedIds: new Set()
+};
+
+class ApiError extends Error {
+  constructor(code, message, status) {
+    super(message || code);
+    this.code = code;
+    this.serverMessage = message || '';
+    this.status = status || 0;
+  }
+}
+
+// ---------- 공통 유틸 ----------
+function announce(text) {
+  // 같은 문구도 다시 읽히도록 비운 뒤 채움
+  els.live.textContent = '';
+  window.setTimeout(() => { els.live.textContent = text; }, 50);
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  return node;
+}
+
+function formatToday(date) {
+  return date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+}
+
+function toLocalISODate(date) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function formatEntryDate(iso) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '날짜 정보 없음';
+  return date.toLocaleString('ko-KR', {
+    year: date.getFullYear() === new Date().getFullYear() ? undefined : 'numeric',
+    month: 'long', day: 'numeric', weekday: 'short', hour: 'numeric', minute: '2-digit'
+  });
+}
+
+// ---------- API ----------
+async function api(path, options = {}) {
+  const { method = 'GET', body, signal } = options;
+  const init = { method, signal, headers: { Accept: 'application/json' } };
+  if (body !== undefined) {
+    init.headers['Content-Type'] = 'application/json';
+    init.body = JSON.stringify(body);
+  }
+  let res;
+  try {
+    res = await fetch(path, init);
+  } catch (err) {
+    if (err && err.name === 'AbortError') throw err;
+    throw new ApiError('NETWORK', '', 0);
+  }
+  if (res.status === 204) return null;
+  let data = null;
+  try { data = await res.json(); } catch (_) { data = null; }
+  if (!res.ok) {
+    const info = data && data.error ? data.error : {};
+    throw new ApiError(typeof info.code === 'string' ? info.code : 'HTTP_' + res.status,
+      typeof info.message === 'string' ? info.message : '', res.status);
+  }
+  if (data === null) throw new ApiError('BAD_JSON', '', res.status);
+  return data;
+}
+
+// 시간 제한이 있는 요청: 사용자가 취소한 것과 시간 초과를 구분
+function withTimeout(ms, controller = new AbortController()) {
+  const ctx = { controller, timedOut: false, timer: 0 };
+  ctx.timer = window.setTimeout(() => { ctx.timedOut = true; controller.abort(); }, ms);
+  ctx.done = () => window.clearTimeout(ctx.timer);
+  return ctx;
+}
+
+// 서버 데이터 정리: 예상과 다른 형태여도 화면이 깨지지 않게 함
+function normalizeEntry(raw) {
+  if (!raw || typeof raw !== 'object' || raw.id === undefined || raw.id === null) return null;
+  const emo = raw.emotion && typeof raw.emotion === 'object' ? raw.emotion : {};
+  const primary = Object.prototype.hasOwnProperty.call(EMOTIONS, emo.primary) ? emo.primary : 'mixed';
+  let intensity = Math.round(Number(emo.intensity));
+  if (!Number.isFinite(intensity)) intensity = 3;
+  intensity = Math.min(5, Math.max(1, intensity));
+  const keywords = Array.isArray(emo.keywords)
+    ? emo.keywords.filter((k) => typeof k === 'string' && k.trim()).map((k) => k.trim()).slice(0, 8)
+    : [];
+  return {
+    id: String(raw.id),
+    text: typeof raw.text === 'string' ? raw.text : '',
+    createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
+    emotion: {
+      primary,
+      label: typeof emo.label === 'string' && emo.label.trim() ? emo.label.trim() : EMOTIONS[primary].label,
+      intensity,
+      keywords
+    },
+    empathy: typeof raw.empathy === 'string' ? raw.empathy : '',
+    comfort: typeof raw.comfort === 'string' ? raw.comfort : '',
+    // 필드가 없거나 true가 아니면 위기 아님으로 취급
+    crisis: raw.crisis === true
+  };
+}
+
+// 오류 코드 → 사용자 안내 문구(코드 문자열은 화면에 노출하지 않음)
+// 주의: tests/qa-gaps.test.js가 이 함수만 떼어 실행하므로 바깥 변수·함수를 참조하지 않음
+function describeError(err) {
+  const serverMsg = err && err.serverMessage ? err.serverMessage : '';
+  const dailyLimit = {
+    title: '오늘의 답장을 모두 보냈어요',
+    message: '오늘 일기 친구가 보낼 수 있는 답장을 모두 썼어요. 내일 다시 전해 주세요. 적은 내용은 그대로 남아 있고, 지난 일기는 계속 볼 수 있어요.',
+    retry: false
+  };
+  switch (err && err.code) {
+    case 'INVALID_INPUT':
+      return { title: '일기 내용을 다시 확인해 주세요', message: serverMsg || '공백을 뺀 1자 이상 300자 이하로 적어 주세요.', retry: false, focusInput: true };
+    case 'DAILY_LIMIT':
+      return dailyLimit;
+    case 'RATE_LIMITED':
+      // 예전 서버처럼 하루 한도를 RATE_LIMITED로 주는 경우도 재시도를 권하지 않음
+      if (/내일/.test(serverMsg)) return dailyLimit;
+      return { title: '잠깐 쉬었다가 다시 전해 주세요', message: '지금 일기 친구에게 이야기가 많이 몰려 있어요. 잠시 후 다시 시도해 주세요. 적은 내용은 그대로 남아 있어요.', retry: true };
+    case 'CONTENT_BLOCKED':
+      return { title: '표현을 조금 바꿔 다시 적어 주세요', message: 'AI 서비스가 일부 표현을 받아들이지 못했어요. 같은 마음을 다른 말로 적어 주시면 답장을 받을 수 있어요. 적은 내용은 그대로 남아 있어요.', retry: false, focusInput: true };
+    case 'FORBIDDEN_ORIGIN':
+      return { title: '일기장 주소를 확인해 주세요', message: '일기를 지키기 위해 이 일기장은 http://127.0.0.1:3000 주소(서버 PORT를 바꿨다면 그 포트)로 열었을 때만 동작해요. 아래 버튼으로 다시 열어 주세요.', retry: false, link: { href: 'http://127.0.0.1:3000/', label: '일기장 주소로 열기' } };
+    case 'AI_TIMEOUT':
+      return { title: '답장이 너무 늦어지고 있어요', message: '일기 친구가 답장을 쓰는 데 시간이 오래 걸렸어요. 적은 내용은 그대로 있으니 다시 한 번 전해 주세요.', retry: true };
+    case 'AI_AUTH_ERROR':
+      // 서버가 원인(잘못된 키·크레딧 부족 등)별로 문구를 구분해 줌
+      return { title: 'AI 연결 설정을 확인해 주세요', message: serverMsg || '.env 파일의 OPENROUTER_API_KEY가 올바르지 않거나 만료된 것 같아요. 키를 확인한 뒤 서버를 다시 시작해 주세요.', retry: false };
+    case 'CONFIG_ERROR':
+      return { title: '일기장 설정이 아직 끝나지 않았어요', message: '.env 파일에 OPENROUTER_API_KEY를 넣고 서버를 다시 시작해 주세요.', retry: false };
+    case 'AI_BAD_RESPONSE':
+    case 'BAD_JSON':
+      return { title: '답장을 제대로 읽지 못했어요', message: '일기 친구의 답장이 흐트러진 채로 도착했어요. 다시 한 번 전해 주세요.', retry: true };
+    case 'UPSTREAM_ERROR':
+      return { title: 'AI 서비스와 연결이 잠시 불안정해요', message: '잠시 후 다시 시도해 주세요. 적은 내용은 그대로 남아 있어요.', retry: true };
+    case 'INTERNAL_ERROR':
+      return { title: '일기장에 작은 문제가 생겼어요', message: '잠시 후 다시 시도해 주세요. 계속되면 서버 창에 표시된 기록을 확인해 주세요.', retry: true };
+    case 'NETWORK':
+      return { title: '일기 친구와 연결되지 않아요', message: '서버가 꺼져 있는 것 같아요. start.bat을 실행하거나 터미널에서 npm start로 서버를 켠 뒤 다시 시도해 주세요.', retry: true };
+    case 'NOT_FOUND':
+      return { title: '찾는 일기가 없어요', message: serverMsg || '이미 지워진 일기예요.', retry: false };
+    default:
+      return { title: '알 수 없는 문제가 생겼어요', message: serverMsg || '잠시 후 다시 시도해 주세요.', retry: true };
+  }
+}
+
+function buildAlert(info, actions, headingTag) {
+  const box = el('div', 'alert-box');
+  box.append(el(headingTag || 'h2', '', info.title), el('p', '', info.message));
+  const all = (actions || []).slice();
+  if (info.link) all.push({ label: info.link.label, href: info.link.href });
+  if (all.length) {
+    const row = el('div', 'alert-actions');
+    all.forEach((a) => {
+      let b;
+      if (a.href) {
+        b = el('a', 'btn', a.label);
+        b.href = a.href;
+      } else {
+        b = el('button', 'btn', a.label);
+        b.type = 'button';
+        b.addEventListener('click', a.onClick);
+      }
+      row.append(b);
+    });
+    box.append(row);
+  }
+  return box;
+}
+
+// http로 열린 경우 일기장 주소 버튼은 지금 서버의 실제 포트로 맞춤(file://는 기본 3000 유지)
+function withLocalLink(info) {
+  if (IS_FILE || !info.link || !location.port) return info;
+  return Object.assign({}, info, { link: Object.assign({}, info.link, { href: `http://127.0.0.1:${location.port}/` }) });
+}
+
+function showError(info) {
+  info = withLocalLink(info);
+  const actions = info.retry ? [{ label: '다시 전하기', onClick: () => { clearError(); submitEntry(); } }] : [];
+  els.errorRegion.replaceChildren(buildAlert(info, actions));
+}
+
+function clearError() { els.errorRegion.replaceChildren(); }
+
+// ---------- 서버 상태 ----------
+function setNotice(kind) {
+  let showRetry = true;
+  if (kind === 'opening') {
+    els.noticeTitle.textContent = '📖 일기장을 펼치는 중이에요…';
+    els.noticeBody.replaceChildren(el('p', '', '일기 친구가 깨어 있는지 살펴보고 바로 일기장으로 넘어갈게요. 잠시만 기다려 주세요.'));
+    showRetry = false;
+  } else if (kind === 'offline') {
+    els.noticeTitle.textContent = '💤 일기 친구가 아직 잠들어 있어요';
+    const p1 = el('p');
+    p1.append('프로젝트 폴더의 ', el('code', '', 'start.bat'), '을 더블클릭하거나, 터미널에서 ', el('code', '', 'npm start'), '를 입력해 깨워 주세요.');
+    const p2 = IS_FILE
+      ? el('p', '', '서버가 깨어나면 이 화면이 저절로 일기장(http://127.0.0.1:3000)으로 넘어가요. 바로 확인하려면 아래 버튼을 눌러 주세요.')
+      : el('p', '', '서버 창이 뜨고 나면 아래 버튼을 눌러 주세요. 그동안 적은 내용은 지워지지 않아요.');
+    // 파일로 열었을 때 자동 이동은 기본 포트(3000)만 확인하므로 포트를 바꾼 경우를 한 줄로 안내
+    const p3 = IS_FILE ? el('p', 'notice-small', '기본 주소는 http://127.0.0.1:3000 이에요. 서버 PORT를 바꿨다면 그 주소를 브라우저에서 직접 열어 주세요.') : null;
+    els.noticeBody.replaceChildren(...[p1, p2, p3].filter(Boolean));
+  } else if (kind === 'nokey') {
+    els.noticeTitle.textContent = '🔑 AI 연결 열쇠가 아직 없어요';
+    const p1 = el('p');
+    p1.append('프로젝트 폴더의 ', el('code', '', '.env'), ' 파일에 ', el('code', '', 'OPENROUTER_API_KEY=발급받은키'), '를 적은 뒤 서버를 다시 시작해 주세요.');
+    const p2 = el('p', '', '열쇠가 없어도 지난 일기는 볼 수 있지만, 새 답장은 받을 수 없어요.');
+    els.noticeBody.replaceChildren(p1, p2);
+  } else if (kind === 'forbidden') {
+    const info = withLocalLink(describeError({ code: 'FORBIDDEN_ORIGIN' }));
+    els.noticeTitle.textContent = '🔒 ' + info.title;
+    const link = el('a', 'btn', info.link.label);
+    link.href = info.link.href;
+    els.noticeBody.replaceChildren(el('p', '', info.message), link);
+    showRetry = false;
+  } else {
+    els.notice.hidden = true;
+    els.noticeBody.replaceChildren();
+    els.notice.dataset.kind = '';
+    return;
+  }
+  els.notice.dataset.kind = kind;
+  els.healthRetry.hidden = !showRetry;
+  els.notice.hidden = false;
+}
+
+// 확인 버튼: disabled 대신 aria-disabled를 써서 키보드 포커스를 잃지 않게 함
+function setRetryBusy(busy) {
+  els.healthRetry.setAttribute('aria-disabled', String(busy));
+  els.healthRetry.textContent = busy ? '확인하는 중…' : '다시 확인하기';
+}
+
+async function checkHealth(fromUser) {
+  if (els.healthRetry.getAttribute('aria-disabled') === 'true') return false;
+  setRetryBusy(true);
+  const t = withTimeout(HEALTH_TIMEOUT_MS);
+  try {
+    const data = await api('/api/health', { signal: t.controller.signal });
+    const noKey = data && data.hasApiKey === false;
+    setNotice(noKey ? 'nokey' : 'ok');
+    if (fromUser) announce(noKey ? '서버는 켜졌지만 AI 열쇠 설정이 필요해요.' : '일기 친구가 깨어났어요. 이제 마음을 전할 수 있어요.');
+    // 연결이 돌아오면 이전 연결 오류 안내는 정리
+    if (els.errorRegion.dataset.kind === 'NETWORK') { clearError(); delete els.errorRegion.dataset.kind; }
+    if (!state.listLoaded) loadEntries();
+    if (fromUser && !noKey) els.input.focus();
+    return true;
+  } catch (err) {
+    if (err && err.code === 'FORBIDDEN_ORIGIN') {
+      setNotice('forbidden');
+      els.historyStatus.textContent = '';
+      if (fromUser) announce('이 주소에서는 일기장을 쓸 수 없어요. 일기장 주소로 다시 열어 주세요.');
+      return false;
+    }
+    setNotice('offline');
+    showHistoryOffline();
+    if (fromUser) announce('아직 서버와 연결되지 않아요. 서버를 켠 뒤 다시 확인해 주세요.');
+    return false;
+  } finally {
+    t.done();
+    setRetryBusy(false);
+  }
+}
+
+// ---------- file:// 전용: 서버 생존 확인 후 같은 출처 주소로 이동 ----------
+// no-cors 요청은 응답을 읽을 수 없지만(opaque), 예외 없이 끝나면 서버가 켜진 것
+async function probeServer() {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
+  try {
+    await fetch(APP_URL + 'api/health', { mode: 'no-cors', cache: 'no-store', signal: controller.signal });
+    return true;
+  } catch (_) {
+    return false;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+async function probeAndOpen(fromUser) {
+  if (state.probing || state.redirecting) return;
+  state.probing = true;
+  window.clearTimeout(state.recheckTimer);
+  if (fromUser) setRetryBusy(true);
+  const alive = await probeServer();
+  state.probing = false;
+  if (alive) {
+    state.redirecting = true;
+    setNotice('opening');
+    announce('일기장을 펼치는 중이에요.');
+    location.replace(APP_URL);
+    return;
+  }
+  setRetryBusy(false);
+  // 같은 안내를 다시 그리면 스크린리더가 반복해 읽으므로 처음 한 번만 바꿈
+  if (els.notice.dataset.kind !== 'offline') setNotice('offline');
+  if (fromUser) {
+    announce('아직 서버가 잠들어 있어요. start.bat으로 서버를 켜 주세요. 켜지면 저절로 일기장이 열려요.');
+    // 자동 확인 시간을 다시 늘려 줌
+    state.recheckUntil = Date.now() + AUTO_RECHECK_LIMIT_MS;
+  }
+  scheduleRecheck();
+}
+
+// 몇 초 간격으로 다시 확인(탭이 보일 때만, 일정 시간이 지나면 멈춤)
+function scheduleRecheck() {
+  window.clearTimeout(state.recheckTimer);
+  if (Date.now() > state.recheckUntil) return;
+  state.recheckTimer = window.setTimeout(() => {
+    if (document.visibilityState === 'visible') probeAndOpen(false);
+    else scheduleRecheck();
+  }, AUTO_RECHECK_MS);
+}
+
+function initFileMode() {
+  // file://에서는 작성·목록을 시도하지 않음
+  els.writeCard.hidden = true;
+  els.history.hidden = true;
+  const skip = document.querySelector('.skip-link');
+  if (skip) { skip.href = '#server-notice'; skip.textContent = '안내로 바로 가기'; }
+  setNotice('opening');
+  state.recheckUntil = Date.now() + AUTO_RECHECK_LIMIT_MS;
+  els.healthRetry.addEventListener('click', () => {
+    if (els.healthRetry.getAttribute('aria-disabled') === 'true') return;
+    probeAndOpen(true);
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && !state.probing && !state.redirecting) probeAndOpen(false);
+  });
+  probeAndOpen(false);
+}
+
+// ---------- 입력 ----------
+// 글자 수는 서버와 같은 코드 포인트 기준(이모지 1개 = 1자)
+function countChars(text) {
+  return [...text].length;
+}
+
+function updateCount() {
+  const len = countChars(els.input.value);
+  let label = `${len} / ${MAX_LEN}자`;
+  if (len > MAX_LEN) label += ` (${len - MAX_LEN}자 넘음)`;
+  else if (len >= NEAR_LIMIT) label += ` (${MAX_LEN - len}자 남음)`;
+  els.count.textContent = label;
+  els.count.classList.toggle('is-near', len >= NEAR_LIMIT);
+  const empty = els.input.value.trim() === '';
+  els.submit.setAttribute('aria-disabled', String(empty || state.busy));
+  if (!empty) hideFieldError();
+}
+
+// 300자를 넘으면 방금 입력한 쪽(커서 앞)에서 넘친 만큼 덜어 냄. 잘랐으면 true
+function enforceMaxLength() {
+  const input = els.input;
+  const value = input.value;
+  const total = countChars(value);
+  if (total <= MAX_LEN) return false;
+  const overflow = total - MAX_LEN;
+  const caret = typeof input.selectionEnd === 'number' ? input.selectionEnd : value.length;
+  const before = [...value.slice(0, caret)];
+  const after = value.slice(caret);
+  let next;
+  let pos;
+  if (before.length >= overflow) {
+    const kept = before.slice(0, before.length - overflow).join('');
+    next = kept + after;
+    pos = kept.length;
+  } else {
+    next = [...value].slice(0, MAX_LEN).join('');
+    pos = next.length;
+  }
+  input.value = next;
+  try { input.setSelectionRange(pos, pos); } catch (_) { /* 선택 범위를 지원하지 않는 경우 무시 */ }
+  return true;
+}
+
+function handleInput(e) {
+  // 한글 조합 중에는 자르지 않고(글자가 깨짐) 조합이 끝난 뒤 처리
+  if ((e && e.isComposing) || state.composing) { updateCount(); return; }
+  const cut = enforceMaxLength();
+  updateCount();
+  if (cut) {
+    showFieldNote(`${MAX_LEN}자까지 적을 수 있어서 넘친 부분은 덜어 냈어요.`);
+    announce(`${MAX_LEN}자까지 적을 수 있어서 넘친 부분은 덜어 냈어요.`);
+  } else if (countChars(els.input.value) < MAX_LEN) {
+    hideFieldNote();
+  }
+}
+
+function showFieldNote(msg) {
+  els.fieldNote.textContent = msg;
+  els.fieldNote.hidden = false;
+}
+
+function hideFieldNote() {
+  if (els.fieldNote.hidden) return;
+  els.fieldNote.hidden = true;
+  els.fieldNote.textContent = '';
+}
+
+function showFieldError(msg) {
+  els.fieldError.textContent = msg;
+  els.fieldError.hidden = false;
+  els.input.setAttribute('aria-invalid', 'true');
+}
+
+function hideFieldError() {
+  // 서버 오류(INVALID_INPUT 등)로 붙은 aria-invalid도 다시 입력하면 정리
+  els.input.removeAttribute('aria-invalid');
+  if (els.fieldError.hidden) return;
+  els.fieldError.hidden = true;
+  els.fieldError.textContent = '';
+}
+
+function setBusy(busy) {
+  state.busy = busy;
+  els.input.readOnly = busy;
+  els.form.setAttribute('aria-busy', String(busy));
+  els.submit.textContent = busy ? '전하는 중…' : '마음 전하기';
+  els.loading.hidden = !busy;
+  window.clearInterval(state.elapsedTimer);
+  if (busy) {
+    const started = Date.now();
+    els.loadingElapsed.textContent = '';
+    els.loadingSub.textContent = '일기 친구가 천천히 답장을 쓰고 있어요. 30초 넘게 걸릴 수도 있어요.';
+    state.elapsedTimer = window.setInterval(() => {
+      const sec = Math.floor((Date.now() - started) / 1000);
+      els.loadingElapsed.textContent = `${sec}초째 기다리는 중`;
+      if (sec === 20) els.loadingSub.textContent = '조금 더 걸리고 있어요. 정성껏 쓰는 중이니 조금만 기다려 주세요.';
+    }, 1000);
+  }
+  updateCount();
+}
+
+async function submitEntry() {
+  if (state.busy) return;
+  const text = els.input.value.trim();
+  if (!text) {
+    showFieldError('한 줄이라도 적어 주세요. 오늘 있었던 작은 일도 괜찮아요.');
+    els.input.focus();
+    return;
+  }
+  if (countChars(text) > MAX_LEN) {
+    showFieldError(`${MAX_LEN}자 이하로 줄여 주세요.`);
+    els.input.focus();
+    return;
+  }
+  hideFieldError();
+  hideFieldNote();
+  clearError();
+  delete els.errorRegion.dataset.kind;
+  // 직전 일기의 답장·위기 안내가 새 일기에 대한 판단처럼 보이지 않게 숨김
+  // (직전 일기와 그 109 안내는 지난 일기 목록에 그대로 남아 있음)
+  hideResult();
+  setBusy(true);
+  announce('마음을 읽고 있어요. 답장이 오기까지 30초 넘게 걸릴 수 있어요. 취소하려면 Esc 키를 누르세요.');
+
+  const t = withTimeout(POST_TIMEOUT_MS);
+  state.controller = t.controller;
+  try {
+    const data = await api('/api/entries', { method: 'POST', body: { text }, signal: t.controller.signal });
+    const entry = normalizeEntry(data && data.entry);
+    if (!entry) throw new ApiError('BAD_JSON', '', 201);
+    els.input.value = '';
+    hideFieldNote();
+    renderResult(entry);
+    addEntryToHistory(entry);
+    if (els.notice.dataset.kind === 'offline') setNotice('ok');
+    setBusy(false);
+    const scrollOpts = { block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' };
+    if (entry.crisis) {
+      // 위기 안내를 먼저 듣고 보도록 안내 상자로 포커스
+      announce(`답장이 도착했어요. 오늘의 감정은 ${entry.emotion.label}이에요. 마음이 힘들 때 바로 전화할 수 있는 곳도 함께 적어 두었어요.`);
+      els.crisisTitle.focus();
+      els.crisis.scrollIntoView(scrollOpts);
+    } else {
+      announce(`답장이 도착했어요. 오늘의 감정은 ${entry.emotion.label}이에요.`);
+      els.resultTitle.focus();
+      els.result.scrollIntoView(scrollOpts);
+    }
+  } catch (err) {
+    setBusy(false);
+    if (err && err.name === 'AbortError') {
+      if (t.timedOut) {
+        showError(describeError({ code: 'AI_TIMEOUT' }));
+      } else {
+        announce('마음 전하기를 멈췄어요. 적은 내용은 그대로 남아 있어요.');
+        els.input.focus();
+      }
+      // 응답 직전에 끊으면 서버가 이미 저장했을 수 있으므로 잠시 뒤 목록을 조용히 맞춤
+      scheduleQuietSync(text);
+      return;
+    }
+    const info = describeError(err);
+    showError(info);
+    els.errorRegion.dataset.kind = err.code;
+    if (err.code === 'NETWORK') { setNotice('offline'); }
+    if (info.focusInput) { els.input.setAttribute('aria-invalid', 'true'); els.input.focus(); }
+  } finally {
+    t.done();
+    state.controller = null;
+  }
+}
+
+function cancelRequest() {
+  if (state.controller) state.controller.abort();
+}
+
+// ---------- 취소 뒤 목록 맞추기 ----------
+// 취소·시간 초과 직후 서버가 이미 저장해 버린 일기가 있으면 목록에 조용히 끼워 넣음.
+// 상태 문구·aria-busy·포커스는 건드리지 않고, 있는 항목은 옮기지 않음(포커스·삭제 확인 상태 유지)
+const QUIET_SYNC_DELAY_MS = 1500;
+
+function scheduleQuietSync(cancelledText) {
+  window.clearTimeout(state.syncTimer);
+  state.syncTimer = window.setTimeout(() => quietSync(cancelledText), QUIET_SYNC_DELAY_MS);
+}
+
+async function quietSync(cancelledText) {
+  // 목록을 아직 못 불렀으면 다음 정상 불러오기가 맞춰 줌
+  if (!state.listLoaded) return;
+  // 새 전송 중이면 끝난 뒤 다시 시도
+  if (state.busy) { scheduleQuietSync(cancelledText); return; }
+  const t = withTimeout(LIST_TIMEOUT_MS);
+  let list;
+  try {
+    const data = await api('/api/entries', { signal: t.controller.signal });
+    list = Array.isArray(data && data.entries) ? data.entries.map(normalizeEntry).filter(Boolean) : [];
+  } catch (_) {
+    return; // 조용한 확인이므로 실패해도 안내하지 않음
+  } finally {
+    t.done();
+  }
+  const known = new Set(state.entries.map((e) => e.id));
+  const added = list.filter((e) => !known.has(e.id) && !state.deletedIds.has(e.id));
+  if (!added.length) return;
+  const addedIds = new Set(added.map((e) => e.id));
+  const liById = new Map([...els.entries.children].map((li) => [li.dataset.id, li]));
+  // 서버 순서(최신순)를 따라, 새 항목은 뒤따르는 기존 항목 바로 앞에 넣음
+  list.forEach((entry, i) => {
+    if (!addedIds.has(entry.id)) return;
+    const li = buildEntryItem(entry);
+    let anchor = null;
+    for (let j = i + 1; j < list.length && !anchor; j += 1) {
+      if (!addedIds.has(list[j].id)) anchor = liById.get(list[j].id) || null;
+    }
+    els.entries.insertBefore(li, anchor);
+    liById.set(entry.id, li);
+  });
+  state.entries.push(...added);
+  updateHistoryMeta();
+  // 멈춘 일기가 실제로는 전해졌다면 같은 내용을 다시 보내지 않도록 한 번만 알려 줌
+  if (cancelledText && !state.busy && added.some((e) => e.text === cancelledText)) {
+    // 입력란에 저장된 일기와 같은 글이 그대로 남아 있으면 비워서 중복 전송을 막음.
+    // 그사이 고쳐 쓴 글(또는 한글 조합 중인 글)은 사용자의 새 글이므로 건드리지 않음. 포커스는 옮기지 않음
+    const sameDraft = !state.composing && els.input.value.trim() === cancelledText;
+    if (sameDraft) {
+      els.input.value = '';
+      updateCount();
+    }
+    const msg = sameDraft
+      ? '멈추기 직전에 일기가 이미 전해져서 지난 일기에 넣어 두었어요. 같은 내용을 다시 전하지 않도록 입력란은 비워 두었어요.'
+      : '멈추기 직전에 일기가 이미 전해져서 지난 일기에 넣어 두었어요. 같은 내용을 다시 전하지 않아도 돼요.';
+    // 시간 초과 때 띄운 "다시 전하기" 안내는 이제 맞지 않으므로 정리
+    clearError();
+    showFieldNote(msg);
+    announce(msg);
+  }
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+// ---------- 감정 표시 ----------
+function buildIntensity(intensity) {
+  const wrap = document.createDocumentFragment();
+  const meter = el('span', 'meter');
+  meter.setAttribute('aria-hidden', 'true');
+  for (let i = 1; i <= 5; i += 1) meter.append(el('i', i <= intensity ? 'on' : ''));
+  wrap.append(meter, el('span', '', `마음의 크기 ${intensity}/5 · ${INTENSITY_WORDS[intensity]}`));
+  return wrap;
+}
+
+function buildTags(keywords, target) {
+  const list = target || el('ul', 'tags');
+  list.replaceChildren(...keywords.map((k) => el('li', '', '#' + k)));
+  list.hidden = keywords.length === 0;
+  if (!target) list.setAttribute('aria-label', '감정 키워드');
+  return list;
+}
+
+function renderResult(entry) {
+  const emo = entry.emotion;
+  els.result.dataset.emotion = emo.primary;
+  els.result.dataset.id = entry.id;
+  els.resultQuote.textContent = entry.text;
+  els.resultEmoji.textContent = EMOTIONS[emo.primary].emoji;
+  els.resultLabel.textContent = emo.label;
+  els.resultIntensity.replaceChildren(buildIntensity(emo.intensity));
+  buildTags(emo.keywords, els.resultTags);
+  setTextKeepingNumbers(els.resultEmpathy, entry.empathy || '오늘 이야기를 들려줘서 고마워요.');
+  setTextKeepingNumbers(els.resultComfort, entry.comfort || '오늘도 충분히 잘 해냈어요.');
+  els.crisis.hidden = !entry.crisis;
+  els.result.hidden = false;
+}
+
+// 서버 글을 텍스트 노드로 넣되 "1577-0199" 같은 하이픈 번호는 줄바꿈되지 않게 묶음
+// (innerHTML을 쓰지 않으므로 서버·모델 글이 HTML로 해석되지 않음)
+const HYPHEN_NUMBER = /\d+(?:-\d+)+/g;
+function setTextKeepingNumbers(node, text) {
+  const parts = [];
+  let last = 0;
+  for (const m of text.matchAll(HYPHEN_NUMBER)) {
+    if (m.index > last) parts.push(text.slice(last, m.index));
+    parts.push(el('span', 'nowrap', m[0]));
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  node.replaceChildren(...parts);
+  return node;
+}
+
+function hideResult() {
+  els.result.hidden = true;
+  els.crisis.hidden = true;
+}
+
+// 지난 일기 항목 안의 작은 위기 안내
+function buildEntryCrisis() {
+  const box = el('p', 'entry-crisis');
+  const icon = el('span', '', '💚');
+  icon.setAttribute('aria-hidden', 'true');
+  const link = el('a', '', '자살예방상담전화 109 (24시간)');
+  link.href = 'tel:109';
+  box.append(icon, ' 힘들 때는 언제든 ', link, '에 전화할 수 있어요.');
+  return box;
+}
+
+// ---------- 지난 일기 ----------
+function buildEntryItem(entry) {
+  const emo = entry.emotion;
+  const li = el('li', 'entry');
+  li.dataset.emotion = emo.primary;
+  li.dataset.id = entry.id;
+
+  const head = el('div', 'entry-head');
+  const h3 = el('h3', 'entry-date');
+  const time = el('time', '', formatEntryDate(entry.createdAt));
+  if (entry.createdAt) time.dateTime = entry.createdAt;
+  h3.append(time);
+  const chip = el('span', 'chip');
+  const emoji = el('span', '', EMOTIONS[emo.primary].emoji);
+  emoji.setAttribute('aria-hidden', 'true');
+  chip.append(emoji, el('span', '', `${emo.label} · 마음의 크기 ${emo.intensity}/5`));
+  head.append(h3, chip);
+
+  li.append(head, el('p', 'entry-text', entry.text));
+  if (emo.keywords.length) li.append(buildTags(emo.keywords));
+  if (entry.empathy) li.append(setTextKeepingNumbers(el('p', 'entry-empathy'), entry.empathy));
+  if (entry.comfort) li.append(setTextKeepingNumbers(el('p', 'entry-comfort'), '“' + entry.comfort + '”'));
+  if (entry.crisis) li.append(buildEntryCrisis());
+
+  const actions = el('div', 'entry-actions');
+  li.append(actions);
+  renderDeleteButton(li, entry, actions);
+  return li;
+}
+
+function entryName(entry) {
+  return `${formatEntryDate(entry.createdAt)} 일기`;
+}
+
+function renderDeleteButton(li, entry, actions) {
+  const del = el('button', 'btn btn-secondary', '지우기');
+  del.type = 'button';
+  del.setAttribute('aria-label', `${entryName(entry)} 지우기`);
+  del.addEventListener('click', () => renderConfirm(li, entry, actions));
+  actions.replaceChildren(del);
+  return del;
+}
+
+// 삭제 확인을 같은 자리에서 묻기(브라우저 confirm 대신)
+function renderConfirm(li, entry, actions) {
+  const msg = el('p', 'confirm-text', '이 일기를 지울까요? 지운 일기는 되돌릴 수 없어요.');
+  msg.id = 'confirm-' + entry.id.replace(/[^\w-]/g, '_');
+  const yes = el('button', 'btn btn-danger', '네, 지울게요');
+  yes.type = 'button';
+  yes.setAttribute('aria-describedby', msg.id);
+  const no = el('button', 'btn btn-secondary', '그대로 둘게요');
+  no.type = 'button';
+  const restore = () => { renderDeleteButton(li, entry, actions).focus(); };
+  no.addEventListener('click', restore);
+  actions.addEventListener('keydown', function onKey(e) {
+    if (e.key === 'Escape' && actions.contains(no)) { e.preventDefault(); actions.removeEventListener('keydown', onKey); restore(); }
+  });
+  yes.addEventListener('click', () => deleteEntry(li, entry, actions, yes, no));
+  actions.replaceChildren(msg, yes, no);
+  yes.focus();
+}
+
+async function deleteEntry(li, entry, actions, yes, no) {
+  if (yes.getAttribute('aria-disabled') === 'true') return;
+  yes.setAttribute('aria-disabled', 'true');
+  no.setAttribute('aria-disabled', 'true');
+  no.disabled = true;
+  yes.textContent = '지우는 중…';
+  els.historyAlert.replaceChildren();
+  const t = withTimeout(LIST_TIMEOUT_MS);
+  try {
+    await api('/api/entries/' + encodeURIComponent(entry.id), { method: 'DELETE', signal: t.controller.signal });
+    removeEntryFromHistory(li, entry);
+    announce('일기를 지웠어요.');
+  } catch (err) {
+    if (err && err.code === 'NOT_FOUND') {
+      removeEntryFromHistory(li, entry);
+      announce('이미 지워진 일기라 목록에서 정리했어요.');
+      return;
+    }
+    const info = (err && err.name === 'AbortError') ? describeError({ code: 'NETWORK' }) : describeError(err);
+    if (err && err.code === 'NETWORK') setNotice('offline');
+    els.historyAlert.replaceChildren(buildAlert({ title: '일기를 지우지 못했어요', message: info.message }, [], 'h3'));
+    renderDeleteButton(li, entry, actions).focus();
+  } finally {
+    t.done();
+  }
+}
+
+function removeEntryFromHistory(li, entry) {
+  // 다음 일기의 지우기 버튼(없으면 제목)으로 포커스 이동
+  const next = li.nextElementSibling || li.previousElementSibling;
+  li.remove();
+  state.deletedIds.add(entry.id);
+  state.entries = state.entries.filter((e) => e.id !== entry.id);
+  if (els.result.dataset.id === entry.id) hideResult();
+  updateHistoryMeta();
+  const target = next && next.querySelector('.entry-actions button');
+  (target || els.historyTitle).focus();
+}
+
+function updateHistoryMeta() {
+  const n = state.entries.length;
+  els.historyCount.textContent = n ? `모두 ${n}편` : '';
+  const existingEmpty = document.querySelector('.history .empty');
+  if (existingEmpty) existingEmpty.remove();
+  if (n === 0 && state.listLoaded) {
+    const box = el('div', 'empty');
+    const big = el('span', 'big', '📔');
+    big.setAttribute('aria-hidden', 'true');
+    box.append(big, el('p', '', '아직 적은 일기가 없어요. 오늘의 한 줄로 첫 페이지를 채워 볼까요?'));
+    els.entries.after(box);
+  }
+}
+
+function addEntryToHistory(entry) {
+  if (state.entries.some((e) => e.id === entry.id)) return;
+  state.entries.unshift(entry);
+  els.entries.prepend(buildEntryItem(entry));
+  if (!state.listLoaded) { state.listLoaded = true; els.historyStatus.textContent = ''; }
+  updateHistoryMeta();
+}
+
+function showHistoryOffline() {
+  if (state.listLoaded) return;
+  els.historyStatus.textContent = '서버가 깨어나면 지난 일기를 보여 드릴게요.';
+}
+
+async function loadEntries() {
+  els.historyAlert.replaceChildren();
+  els.historyStatus.textContent = '지난 일기를 펼치는 중이에요…';
+  els.entries.setAttribute('aria-busy', 'true');
+  const t = withTimeout(LIST_TIMEOUT_MS);
+  try {
+    const data = await api('/api/entries', { signal: t.controller.signal });
+    const list = Array.isArray(data && data.entries) ? data.entries.map(normalizeEntry).filter(Boolean) : [];
+    state.entries = list;
+    state.listLoaded = true;
+    // DOM 갱신은 조각에 모아 한 번에 반영
+    const frag = document.createDocumentFragment();
+    list.forEach((entry) => frag.append(buildEntryItem(entry)));
+    els.entries.replaceChildren(frag);
+    els.historyStatus.textContent = '';
+    updateHistoryMeta();
+  } catch (err) {
+    els.historyStatus.textContent = '';
+    const info = (err && err.name === 'AbortError') ? describeError({ code: 'NETWORK' }) : describeError(err);
+    if (err && (err.code === 'NETWORK' || err.name === 'AbortError')) {
+      setNotice('offline');
+      showHistoryOffline();
+    } else if (err && err.code === 'FORBIDDEN_ORIGIN') {
+      setNotice('forbidden');
+    } else {
+      els.historyAlert.replaceChildren(buildAlert({ title: '지난 일기를 불러오지 못했어요', message: info.message },
+        [{ label: '다시 불러오기', onClick: () => loadEntries() }], 'h3'));
+    }
+  } finally {
+    t.done();
+    els.entries.removeAttribute('aria-busy');
+  }
+}
+
+// ---------- 이벤트 ----------
+function init() {
+  const now = new Date();
+  els.today.textContent = formatToday(now);
+  els.today.dateTime = toLocalISODate(now);
+
+  if (IS_FILE) {
+    initFileMode();
+    return;
+  }
+
+  els.input.addEventListener('input', handleInput);
+  els.input.addEventListener('compositionstart', () => { state.composing = true; });
+  els.input.addEventListener('compositionend', () => {
+    state.composing = false;
+    // 브라우저마다 compositionend와 마지막 input의 순서가 달라 여기서도 한 번 처리
+    handleInput();
+  });
+  els.input.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    // 한글 조합 중 Enter는 글자 확정용이므로 제출하지 않음
+    if (e.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    submitEntry();
+  });
+  els.form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    submitEntry();
+  });
+  els.cancel.addEventListener('click', cancelRequest);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state.busy) { e.preventDefault(); cancelRequest(); }
+  });
+  els.healthRetry.addEventListener('click', () => checkHealth(true));
+  els.writeAgain.addEventListener('click', () => {
+    els.input.focus();
+    els.input.scrollIntoView({ block: 'center', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+  });
+
+  updateCount();
+  checkHealth(false);
+}
+
+init();
+</script>
+</body>
+</html>
