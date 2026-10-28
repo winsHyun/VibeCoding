@@ -51,7 +51,7 @@ Claude Code와 대화하며 **PRD(제품 요구사항 문서)를 먼저 쓰고**
 > 마우스로 숫자(0–9)를 그리면 **MNIST 데이터셋**으로 학습한 CNN이 어떤 숫자인지 알아맞힙니다.
 
 <p align="center">
-  <img src="Study-01/스크린샷%202026-10-28%20110426.png" alt="손글씨 숫자 인식기" width="600">
+  <img src="Study-01/screenshot.png" alt="손글씨 숫자 인식기" width="600">
 </p>
 
 **주요 기능**
