@@ -30,6 +30,7 @@ Claude Code와 대화하며 **PRD(제품 요구사항 문서)를 먼저 쓰고**
 | 03+ | [🎯 상식 퀴즈 게임 (고급)](#-study-03-basic--상식-퀴즈-게임-고급) | 난이도·스피드 모드·콤보·순위표까지 | JS · localStorage · 커스텀 명령 |
 | 04 | [🥬 냉장고를 부탁해](#-study-04--냉장고를-부탁해-ai-레시피-추천) | 냉장고 사진 → 재료 인식 → AI 레시피 추천 | Express · OpenRouter · sharp |
 | 05 | [📔 공감 AI 다이어리](#-study-05--공감-ai-다이어리) | 한 줄 일기의 감정을 분석하고 공감 답장 | Express · OpenRouter |
+| 05+ | [📄 PDF 한눈 요약](#-study-05-pdf--pdf-한눈-요약) | PDF를 올리면 한 줄 요약·요점·키워드를 한국어로 정리 | unpdf · OpenRouter rerank |
 
 ---
 
@@ -206,6 +207,33 @@ npm test               # 테스트 실행
 
 ---
 
+## 📄 Study-05 PDF · PDF 한눈 요약
+
+> PDF 파일 1개를 올리면 AI가 **한 줄 요약 · 개요 · 핵심 요점 · 섹션별 요약 · 키워드**를 한국어로 정리해 줍니다. 공감 다이어리와 같은 서버에서 `/pdf` 화면(`index_pdf.html`)으로 시작합니다.
+
+<p align="center">
+  <img src="Study-05/screenshot_pdf_01.png" alt="PDF 한눈 요약 - 업로드와 요약 결과" width="48%">
+  <img src="Study-05/screenshot_pdf_02.png" alt="PDF 한눈 요약 - 섹션별 요약과 키워드" width="48%">
+</p>
+
+**주요 기능**
+- 📥 PDF를 **끌어 놓거나** 버튼으로 골라 업로드 (1개, 20MB까지) — 보내기 전에 개수·형식·크기를 미리 검사
+- 📝 결과: 한 줄 요약, 개요, 핵심 요점(근거 쪽 `p.N` 배지), 접고 펼치는 **섹션별 요약**, 키워드
+- 📋 **전체 복사 · 마크다운으로 복사 · 요점만 복사** 버튼
+- 📚 긴 문서는 문단 조각으로 나눈 뒤 **rerank 모델**로 중요한 조각을 골라 요약하고, rerank가 실패하면 앞부분 + 끝부분으로 대신 요약
+- 🛡️ 안전한 추출: `unpdf`(PDF.js)를 **워커 스레드**에서 돌리고 시간(15초)·메모리 상한을 넘으면 중단, 디스크에 저장하지 않음
+- ⚠️ 암호 걸린 PDF · 깨진 파일 · 글자 없는(스캔) PDF · 동시 요청 등을 **알기 쉬운 오류 문구**로 안내
+- 🌏 문서 안의 지시문은 무시하고, 원문에 없는 내용을 지어내지 않도록 프롬프트 설계
+
+> 🧪 [`PDF_PRD.md`](Study-05/PDF_PRD.md)로 기획하고, QA 에이전트의 [`QA_PDF_REPORT.md`](Study-05/QA_PDF_REPORT.md)로 서버 멈춤·메모리 폭주 같은 버그를 찾아 고쳤습니다.
+
+```bash
+cd Study-05
+npm start              # → http://127.0.0.1:3000/pdf  (index_pdf.html)
+```
+
+---
+
 ## 🧰 기술 스택 정리
 
 ### 프로젝트별 한눈에 보기
@@ -223,6 +251,7 @@ npm test               # 테스트 실행
 | OpenRouter API (LLM) | | | | | ✅ | ✅ |
 | JSON 파일 저장소 | | | | | ✅ | ✅ |
 | 테스트 (`node --test` 등) | | | | ✅ | ✅ | ✅ |
+| PDF 텍스트 추출 (unpdf) | | | | | | ✅ |
 | Claude Code 커스텀 명령 | | | | ✅ | | |
 | Claude Code 서브 에이전트 | | | | | ✅ | ✅ |
 
@@ -235,6 +264,7 @@ npm test               # 테스트 실행
 | 🧠 **머신러닝** | TensorFlow.js 4.22 — MNIST CNN 학습·추론 | 01 |
 | 🖥️ **데스크톱** | Electron 44 | 01 |
 | 🤖 **생성형 AI** | OpenRouter API — NVIDIA Nemotron, Google Gemma 무료 모델 (채팅·임베딩), 대체 모델 자동 전환 | 04, 05 |
+| 📄 **문서 처리** | unpdf(PDF.js) — 워커 스레드 텍스트 추출, OpenRouter rerank로 중요 조각 선택 | 05 |
 | 🖼️ **이미지 처리** | sharp — 사진 리사이즈·3×3 조각 분할 | 04 |
 | 💾 **데이터 저장** | `localStorage`, IndexedDB(모델 저장), JSON 파일(원자적 쓰기) | 01, 02, 03+, 04, 05 |
 | 🧪 **테스트** | Node.js 내장 테스트 러너 (`node --test`) | 03+, 04, 05 |
@@ -254,7 +284,7 @@ VibeCoding/
 ├── Study-03/            🧠 상식 퀴즈 게임 (기본)
 │   └── Study-03-basic/      🎯 상식 퀴즈 게임 (고급)
 ├── Study-04/            🥬 냉장고를 부탁해 (AI 레시피 추천)
-└── Study-05/            📔 공감 AI 다이어리
+└── Study-05/            📔 공감 AI 다이어리 + 📄 PDF 한눈 요약 (/pdf)
 ```
 
 <div align="center">
