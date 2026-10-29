@@ -67,6 +67,12 @@ export const config = {
     callTimeoutMs: num("PDF_CALL_TIMEOUT_MS", 35000),
     rerankTimeoutMs: num("PDF_RERANK_TIMEOUT_MS", 15000),
     extractTimeoutMs: num("PDF_EXTRACT_TIMEOUT_MS", 15000),
+    // 추출 워커의 V8 힙 상한(MB). 힙 밖 메모리(PDF.js가 압축을 풀어 담는 스트림 버퍼)는 이 값으로 묶이지 않는다
+    workerMemoryMb: num("PDF_WORKER_MEMORY_MB", 512),
+    // 추출 중 프로세스 RSS가 시작 시점보다 이만큼(MB) 넘게 늘면 워커를 멈추고 PDF_TOO_COMPLEX (압축 폭탄 대비, 100ms 간격 확인. 0이면 끔)
+    extractMaxRssMb: num("PDF_EXTRACT_MAX_RSS_MB", 1024),
+    // 쪽당 텍스트 항목 수 상한. 같은 글자를 수십만 번 그린 쪽은 앞부분만 읽는다
+    maxItemsPerPage: num("PDF_MAX_ITEMS_PER_PAGE", 50000),
     // 요약 응답 max_tokens. 한국어 JSON(요점 7개·섹션 6개)이 2,000토큰 가까이 나와 잘리지 않게 PRD 값(2000)보다 넉넉히 둔다
     summaryMaxTokens: num("PDF_SUMMARY_MAX_TOKENS", 3000),
     // rerank 1회 호출에 보낼 조각 수 상한. 넘으면 조각 크기를 키워 맞춘다(OpenRouter 문서에 상한이 없어 PRD 가정값 128)

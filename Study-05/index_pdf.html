@@ -234,6 +234,8 @@
     border-color: var(--accent);
   }
   .dropzone[aria-disabled="true"] { cursor: progress; opacity: .7; }
+  /* 처리 중에 끌고 있을 때: 받을 수 없다는 느낌(점선 + 경고색, 문구도 바뀜) */
+  .dropzone[aria-disabled="true"].is-dragover { border-style: dashed; border-color: var(--warn-border); background: var(--warn-bg); }
   .privacy {
     margin-top: .85rem;
     padding: .6rem .85rem;
@@ -1328,6 +1330,14 @@ function hasFiles(e) {
   return !!types && Array.prototype.indexOf.call(types, 'Files') !== -1;
 }
 
+// 끌어 놓기 처리 결정 (순수 함수, 바깥 참조 없음: tests/qa-pdf.test.js가 떼어 시험)
+// 처리 중에도 dropEffect를 'copy'로 둬야 브라우저가 drop 이벤트를 보냄('none'이면 drop이 오지 않아 안내를 못 띄움, B-8).
+// 처리 중 drop은 업로드하지 않고 안내만. 파일이 아닌 끌기(글자 등)는 무시
+function decideDrop(withFiles, busy) {
+  if (!withFiles) return { dropEffect: 'none', action: 'ignore' };
+  return { dropEffect: 'copy', action: busy ? 'busy-note' : 'upload' };
+}
+
 function setDragOver(on) {
   els.dropzone.classList.toggle('is-dragover', on);
   if (on) {
@@ -1347,7 +1357,7 @@ function initDragDrop() {
   window.addEventListener('dragover', (e) => {
     // 기본 동작을 막아야 브라우저가 파일을 열지 않음(페이지 어디서든)
     e.preventDefault();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = hasFiles(e) && !state.busy ? 'copy' : 'none';
+    if (e.dataTransfer) e.dataTransfer.dropEffect = decideDrop(hasFiles(e), state.busy).dropEffect;
   });
   window.addEventListener('dragleave', (e) => {
     if (!hasFiles(e)) return;
@@ -1358,8 +1368,9 @@ function initDragDrop() {
     e.preventDefault();
     state.dragDepth = 0;
     setDragOver(false);
-    if (!hasFiles(e)) return;
-    handleFiles(e.dataTransfer.files);
+    const decision = decideDrop(hasFiles(e), state.busy);
+    if (decision.action === 'busy-note') showBusyNote();
+    else if (decision.action === 'upload') handleFiles(e.dataTransfer.files);
   });
 }
 

@@ -8,7 +8,7 @@ import { cleanDisplayText, createPdfExtractor, hasPdfSignature } from "./pdf.js"
 import { createOriginGuard, DEFAULT_HOST_NAMES } from "./security.js";
 
 // PDF 설정 기본값 (config.pdf와 같은 이름). 테스트는 일부만 덮어쓴다
-const PDF_DEFAULTS = { maxBytes: 20 * 1024 * 1024, maxPages: 200, maxTextChars: 200000, extractTimeoutMs: 15000, maxCalls: 4, rerankModel: null };
+const PDF_DEFAULTS = { maxBytes: 20 * 1024 * 1024, maxPages: 200, maxTextChars: 200000, extractTimeoutMs: 15000, workerMemoryMb: 512, extractMaxRssMb: 1024, maxItemsPerPage: 50000, maxCalls: 4, rerankModel: null };
 
 // X-File-Name(encodeURIComponent 값) → 표시용 파일 이름. 없거나 디코딩에 실패하면 null (오류 아님)
 export function parseFileName(header) {
@@ -42,7 +42,7 @@ function requireJson(req, res, next) {
 }
 
 // deps: { store, analyze(text, { signal, entryId }), hasApiKey(), primaryModel, indexPath, pdfIndexPath, hostNames, logger, now,
-//         pdf: config.pdf 값 (maxBytes, maxPages, maxTextChars, extractTimeoutMs, maxCalls, rerankModel),
+//         pdf: config.pdf 값 (maxBytes, maxPages, maxTextChars, extractTimeoutMs, workerMemoryMb, extractMaxRssMb, maxItemsPerPage, maxCalls, rerankModel),
 //         extractPdf(buffer, { signal }) → ExtractedPdf (기본: pdf.js의 createPdfExtractor. 구조는 그 파일 주석),
 //         summarizePdf(extracted, { signal, fileName, startedAt }) → PdfSummaryResult (pdf-summary.js의 createPdfSummarizer. 없으면 PDF 요약은 INTERNAL_ERROR) }
 // PdfSummaryResult = { oneLine, overview, keyPoints: [{ text, pages? }], sections: [{ title, summary, pages? }], keywords: string[],
@@ -68,7 +68,14 @@ export function createApp({
   app.disable("x-powered-by");
   const guard = createOriginGuard({ hostNames });
   const pdf = { ...PDF_DEFAULTS, ...pdfOptions };
-  const extract = extractPdf ?? createPdfExtractor({ maxPages: pdf.maxPages, maxChars: pdf.maxTextChars, timeoutMs: pdf.extractTimeoutMs });
+  const extract = extractPdf ?? createPdfExtractor({
+      maxPages: pdf.maxPages,
+      maxChars: pdf.maxTextChars,
+      timeoutMs: pdf.extractTimeoutMs,
+      workerMemoryMb: pdf.workerMemoryMb,
+      maxRssGrowthMb: pdf.extractMaxRssMb,
+      maxItemsPerPage: pdf.maxItemsPerPage,
+    });
   const summarize =
     summarizePdf ??
     (async () => {

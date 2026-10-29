@@ -7,6 +7,7 @@ import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Worker } from "node:worker_threads";
 import { after, before, beforeEach, describe, test } from "node:test";
 import { createApp, parseFileName } from "../src/app.js";
 import { ApiError, ERRORS, PDF_MESSAGES } from "../src/errors.js";
@@ -234,7 +235,7 @@ describe("성공", () => {
       const { summary } = await res.json();
       assert.equal(chatCalls.length, 1);
       const user = chatCalls[0].messages[1].content;
-      assert.match(user, /title: 충전 시장 보고서/);
+      assert.ok(user.includes('<document_title>"충전 시장 보고서"</document_title>\n<document>'));
       assert.ok(user.includes("<document>\n[p.1]\n전기차 충전 시장 보고서입니다"));
       assert.deepEqual(summary.keyPoints, [{ text: "충전기 설치 수가 42% 늘었어요.", pages: [1] }]);
       assert.equal(summary.coverage.method, "full");
@@ -455,9 +456,8 @@ describe("연결 끊김", () => {
   });
 });
 
-// 프로젝트 폴더(node_modules·.git 제외)와 OS 임시 폴더 1단계 목록. 다른 테스트 파일이 동시에 만드는 diary-* 임시 폴더는 뺀다
-async function snapshot() {
-  const root = fileURLToPath(new URL("..", import.meta.url));
+// 폴더 아래 모든 파일·폴더 목록 (node_modules·.git 제외)
+async function listTree(root) {
   const files = new Set();
   async function walk(d) {
     for (const e of await readdir(d, { withFileTypes: true })) {
@@ -468,18 +468,82 @@ async function snapshot() {
     }
   }
   await walk(root);
-  for (const name of await readdir(tmpdir())) if (!name.startsWith("diary-")) files.add(join(tmpdir(), name));
   return files;
 }
 
 describe("디스크 미저장", () => {
+  // OS 전역 %TEMP%는 다른 프로그램이 수시로 바꿔 비교가 불안정하다(QA B-10). 이 테스트 동안만 TEMP·TMP·TMPDIR를
+  // 새 빈 폴더로 돌려 os.tmpdir()가 그 폴더를 가리키게 하고(Node는 호출할 때마다 환경 변수를 읽음), 그 폴더와 프로젝트 폴더만 비교한다.
+  // 우리 코드(src/)는 os.tmpdir()를 쓰지 않으므로 임시 파일을 만드는 코드가 생기면(라이브러리 포함) 이 폴더에 나타난다.
+  // 추출 워커도 요청마다 새로 떠서 바뀐 환경 변수를 물려받는다(아래에서 확인).
   test("업로드·추출·실패 처리 전후로 프로젝트·임시 폴더에 새 파일이 없다", async () => {
-    const beforeFiles = await snapshot();
-    await upload(KO_PDF);
-    await upload(buildPdf([{ items: lines([EN_TEXT]) }], { encrypt: { userPassword: "pw" } }));
-    await upload(Buffer.from("%PDF-1.4 broken"));
-    await upload(Buffer.concat([KO_PDF, Buffer.alloc(MAX_BYTES)]));
-    const added = [...(await snapshot())].filter((f) => !beforeFiles.has(f));
-    assert.deepEqual(added, []);
+    const isolatedTmp = await mkdtemp(join(tmpdir(), "diary-pdftmp-"));
+    const saved = { TEMP: process.env.TEMP, TMP: process.env.TMP, TMPDIR: process.env.TMPDIR };
+    for (const k of Object.keys(saved)) process.env[k] = isolatedTmp;
+    try {
+      assert.equal(tmpdir(), isolatedTmp);
+      const workerTmp = await new Promise((resolve, reject) => {
+        const w = new Worker("require('node:worker_threads').parentPort.postMessage(require('node:os').tmpdir())", { eval: true });
+        w.once("message", resolve);
+        w.once("error", reject);
+      });
+      assert.equal(workerTmp, isolatedTmp, "워커도 바뀐 임시 폴더를 쓴다");
+
+      const root = fileURLToPath(new URL("..", import.meta.url));
+      const snapshot = async () => new Set([...(await listTree(root)), ...(await listTree(isolatedTmp))]);
+      const beforeFiles = await snapshot();
+      assert.equal((await upload(KO_PDF)).status, 200);
+      await upload(buildPdf([{ items: lines([EN_TEXT]) }], { encrypt: { userPassword: "pw" } }));
+      await upload(Buffer.from("%PDF-1.4 broken"));
+      await upload(Buffer.concat([KO_PDF, Buffer.alloc(MAX_BYTES)]));
+      const added = [...(await snapshot())].filter((f) => !beforeFiles.has(f));
+      assert.deepEqual(added, []);
+    } finally {
+      for (const [k, v] of Object.entries(saved)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+      await rm(isolatedTmp, { recursive: true, force: true });
+    }
+  });
+});
+
+// QA B-1: 무거운 쪽 하나가 서버 전체를 멈추지 않는다 (추출은 worker_threads 워커에서)
+describe("무거운 PDF (QA B-1)", () => {
+  const heavyPage = (n) => buildPdf([{ items: Array.from({ length: n }, () => ({ text: "Hello bomb text here", x: 72, y: 720 })) }]);
+
+  test("추출 중에도 다른 요청은 바로 응답하고, 시간 상한이면 422 PDF_TOO_COMPLEX, 그 뒤 자리를 놓는다", async () => {
+    const { srv, url } = await startApp({
+      hasApiKey: () => true,
+      summarizePdf: async () => FAKE_RESULT,
+      extractPdf: createPdfExtractor({ timeoutMs: 700, maxChars: 1e9, maxItemsPerPage: 1e9 }),
+    });
+    try {
+      const started = Date.now();
+      const pending = upload(heavyPage(80000), {}, url);
+      await sleep(150);
+      const t = Date.now();
+      assert.equal((await fetch(`${url}/api/health`)).status, 200);
+      assert.equal((await fetch(`${url}/api/entries`)).status, 200);
+      assert.ok(Date.now() - t < 1000, `health took ${Date.now() - t}ms`);
+      await expectError(await pending, 422, "PDF_TOO_COMPLEX");
+      assert.ok(Date.now() - started < 3000, `${Date.now() - started}ms`);
+      assert.equal((await upload(KO_PDF, {}, url)).status, 200);
+    } finally {
+      srv.close();
+    }
+  });
+
+  test("기본 상한이면 같은 PDF가 빨리 200 (글자 상한에서 멈춤)", async () => {
+    const { srv, url } = await startApp({ hasApiKey: () => true, summarizePdf: async () => FAKE_RESULT });
+    try {
+      const t = Date.now();
+      const res = await upload(heavyPage(80000), {}, url);
+      assert.equal(res.status, 200);
+      assert.equal((await res.json()).summary.document.characters, 200000);
+      assert.ok(Date.now() - t < 5000, `${Date.now() - t}ms`);
+    } finally {
+      srv.close();
+    }
   });
 });

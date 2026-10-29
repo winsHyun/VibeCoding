@@ -194,12 +194,13 @@ function openError(err) {
  *   itemCappedPages,    // 텍스트 항목이 maxItemsPerPage를 넘어 뒷부분을 읽지 않은 쪽 수 (PDF 폭탄 대비)
  *   pageTexts: [{ page, text }], // 읽은 페이지마다 1개(글자 없는 페이지는 text ""), page는 1부터. 줄은 "\n", 문단은 "\n\n"
  * }
- * 실패: ApiError PDF_ENCRYPTED | PDF_CORRUPTED | PDF_TOO_COMPLEX(timeoutMs 초과·워커 메모리 초과) | PDF_NO_TEXT,
+ * 실패: ApiError PDF_ENCRYPTED | PDF_CORRUPTED | PDF_TOO_COMPLEX(timeoutMs 초과·워커 힙 초과·RSS 증가 상한 초과) | PDF_NO_TEXT,
  *       signal이 abort되면 err.cancelled = true 인 오류.
  *
  * 기본은 worker_threads 워커 1개를 요청마다 띄워 그 안에서 추출한다 (QA B-1).
  * - PDF.js와 줄 재구성은 동기로 오래 도는 구간이 있어 주 스레드에서 돌리면 서버 전체(다이어리 포함)가 멈춘다.
- * - 시간 초과·취소 때 worker.terminate()로 확실히 멈추고, resourceLimits로 메모리를 묶어 OOM이 나도 워커만 죽는다.
+ * - 시간 초과·취소 때 worker.terminate()로 확실히 멈춘다. resourceLimits(workerMemoryMb)는 워커의 V8 힙만 묶어 힙 OOM이 나도 워커만 죽고,
+ *   힙 밖 메모리(압축을 푼 스트림 버퍼)는 주 스레드가 memoryCheckMs마다 RSS 증가량을 보고 maxRssGrowthMb를 넘으면 terminate한다(QA B-7).
  * - 돌려주는 프로미스는 워커가 완전히 끝난(exit) 뒤에 정해진다 → 동시 1건 자리가 풀린 뒤 뒤에서 도는 작업이 없다.
  * - buffer는 워커로 넘긴다(transfer, 복사 없음). 그 Buffer가 ArrayBuffer 전체를 쓰고 있으면 호출 뒤 비워지므로 다시 쓰지 않는다
  *   (Node 풀 버퍼 등 일부만 쓰는 Buffer는 복사해서 넘긴다). transfer: false면 항상 복사한다.
@@ -211,6 +212,9 @@ export function createPdfExtractor({
   timeoutMs = 15000,
   maxItemsPerPage = 50000,
   workerMemoryMb = 512,
+  maxRssGrowthMb = 1024,
+  memoryCheckMs = 100,
+  memoryProbe = defaultMemoryProbe,
   transfer = true,
   loadPdfjs,
   useWorker = !loadPdfjs,
@@ -219,7 +223,7 @@ export function createPdfExtractor({
 
   if (useWorker) {
     return function extractPdf(buffer, { signal } = {}) {
-      return runInWorker(buffer, { signal, limits, timeoutMs, workerMemoryMb, transfer });
+      return runInWorker(buffer, { signal, limits, timeoutMs, workerMemoryMb, maxRssGrowthMb, memoryCheckMs, memoryProbe, transfer });
     };
   }
 
@@ -271,9 +275,37 @@ function toTransferable(buffer, transfer) {
   return new Uint8Array(buffer).buffer;
 }
 
-function runInWorker(buffer, { signal, limits, timeoutMs, workerMemoryMb, transfer }) {
+// 프로세스 RSS(바이트). 워커의 V8 힙 밖 메모리(PDF.js가 압축을 풀어 담는 스트림 버퍼 등)까지 들어간다
+const defaultMemoryProbe = () => process.memoryUsage.rss();
+
+/**
+ * 추출 중 메모리 증가 감시 (QA B-7). resourceLimits는 워커의 V8 힙만 묶어서, 압축 폭탄은 힙 밖 버퍼로 RSS를 수 GB까지 키운다.
+ * intervalMs마다 probe()를 재고 시작 시점보다 limitBytes 넘게 늘면 onExceed(증가량)를 한 번 부른다.
+ * PDF 추출은 서버 전체에서 동시 1건이라 이 시간 동안 늘어난 RSS를 이 추출의 몫으로 본다(다이어리 요청 몫은 작다).
+ * 반환: 감시를 멈추는 함수.
+ */
+export function watchMemoryGrowth({ probe = defaultMemoryProbe, limitBytes, intervalMs = 100, onExceed }) {
+  const baseline = probe();
+  let fired = false;
+  const timer = setInterval(() => {
+    if (fired) return;
+    const growth = probe() - baseline;
+    if (growth > limitBytes) {
+      fired = true;
+      clearInterval(timer);
+      onExceed(growth);
+    }
+  }, intervalMs);
+  timer.unref?.();
+  return () => clearInterval(timer);
+}
+
+function runInWorker(buffer, { signal, limits, timeoutMs, workerMemoryMb, maxRssGrowthMb, memoryCheckMs, memoryProbe, transfer }) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) return reject(cancelled());
+    // 이미 다른 워커로 넘겨져(transfer) 비워진 버퍼 등: 워커를 띄우기 전에 바로 거부한다 (QA S-7)
+    if (!Buffer.isBuffer(buffer) && !(buffer instanceof Uint8Array)) return reject(new ApiError("INTERNAL_ERROR", undefined, "extractPdf: buffer is not a Uint8Array"));
+    if (buffer.buffer.detached || buffer.length === 0) return reject(new ApiError("INTERNAL_ERROR", undefined, "extractPdf: buffer is empty or already transferred"));
     const bytes = buffer.length;
     const worker = new Worker(WORKER_URL, {
       resourceLimits: { maxOldGenerationSizeMb: workerMemoryMb, maxYoungGenerationSizeMb: Math.min(64, Math.max(8, Math.floor(workerMemoryMb / 8))) },
@@ -293,6 +325,15 @@ function runInWorker(buffer, { signal, limits, timeoutMs, workerMemoryMb, transf
     const timer = setTimeout(() => stop(new ApiError("PDF_TOO_COMPLEX", undefined, `extraction exceeded ${timeoutMs}ms`)), timeoutMs);
     const onAbort = () => stop(cancelled());
     signal?.addEventListener("abort", onAbort, { once: true });
+    const stopWatching = maxRssGrowthMb > 0
+      ? watchMemoryGrowth({
+          probe: memoryProbe,
+          limitBytes: maxRssGrowthMb * 1024 * 1024,
+          intervalMs: memoryCheckMs,
+          onExceed: (growth) =>
+            stop(new ApiError("PDF_TOO_COMPLEX", undefined, `extraction memory grew ${Math.round(growth / 1048576)}MB (limit ${maxRssGrowthMb}MB)`)),
+        })
+      : () => {};
 
     worker.on("message", (msg) => {
       if (msg?.ok) settle({ value: { ...msg.result, bytes } });
@@ -306,14 +347,20 @@ function runInWorker(buffer, { signal, limits, timeoutMs, workerMemoryMb, transf
     // 워커가 완전히 끝난 뒤에만 결과를 돌려준다 (자리를 놓은 뒤 뒤에서 도는 추출이 없게)
     worker.on("exit", (code) => {
       clearTimeout(timer);
+      stopWatching();
       signal?.removeEventListener("abort", onAbort);
       settle({ error: new ApiError("INTERNAL_ERROR", undefined, `pdf worker exited with code ${code}`) });
       if (outcome.error) reject(outcome.error);
       else resolve(outcome.value);
     });
 
-    const data = toTransferable(buffer, transfer);
-    worker.postMessage({ data, limits, timeoutMs }, [data]);
+    try {
+      const data = toTransferable(buffer, transfer);
+      worker.postMessage({ data, limits, timeoutMs }, [data]);
+    } catch (err) {
+      // 보낼 수 없는 버퍼(DataCloneError 등)면 워커를 기다리지 않고 바로 끝낸다
+      stop(new ApiError("INTERNAL_ERROR", undefined, `extractPdf: could not send buffer to worker: ${shortMessage(err)}`));
+    }
   });
 }
 
@@ -444,6 +491,8 @@ export function documentNotices(extracted, { maxPages = 200, maxChars = 200000 }
   const notices = [];
   if (extracted.truncatedPages) notices.push(`${extracted.pages}쪽 중 앞 ${maxPages}쪽만 읽었어요.`);
   if (extracted.truncatedChars) notices.push(`글자가 많아 앞부분 ${maxChars.toLocaleString("en-US")}자까지만 읽었어요.`);
+  // 쪽당 텍스트 항목 수 상한(maxItemsPerPage)으로 뒷부분을 읽지 않은 쪽 (QA B-9)
+  if (extracted.itemCappedPages > 0) notices.push(`내용이 아주 많은 쪽 ${extracted.itemCappedPages}개는 앞부분만 읽었어요.`);
   if (extracted.pagesWithoutText > 0) notices.push(`글자가 없는 페이지 ${extracted.pagesWithoutText}쪽(스캔 이미지 등)은 요약에서 빠졌어요.`);
   return notices;
 }

@@ -229,3 +229,134 @@ Lighthouse는 실행하지 않았습니다. 화면은 단일 HTML(인라인 CSS�
 ## 10. 사용한 QA 도구 (스크래치, 커밋 안 함)
 
 `C:\Users\syste\AppData\Local\Temp\claude\D--study-inflearn-VibeCoding-Study-05\2fcaa088-d173-45af-b4e8-54c22e5c64f0\scratchpad\qa\` 아래: `server.mjs`(실제 앱 + 가짜 OpenRouter fetch, 파일 이름 모드), `make-files.mjs`·`make-bomb.mjs`(입력 PDF), `http-cases.mjs`·`http-cases2.mjs`·`timeout-case.mjs`(HTTP), `ui-test.mjs`·`ui-copy.mjs`·`ui-file.mjs`·`ui-down.mjs`·`ui-timeout.mjs`(화면), `extract-one.mjs`·`extract-after.mjs`·`profile-bt.mjs`·`fuzz.mjs`(추출), `edgepdf\report.pdf`(Edge가 만든 PDF).
+
+---
+
+## 재검증 (2026-10-29)
+
+B-1~B-6과 rerank 파서 수정분만 다시 확인했습니다. 전체 재QA는 아닙니다. 실제 OpenRouter 호출은 0회입니다. 실제 요약 실측(짧은 한글 2쪽 full 5.1초 calls 1/4, 영문 30쪽 rerank 6.0초 chunks 11/40 calls 2/4)은 백엔드 측정값을 참고만 했습니다. 제품 코드는 고치지 않았습니다. QA 서버(실제 앱·추출기·요약기 + 가짜 fetch)와 헤드리스 Edge는 끝난 뒤 종료했고, 포트 3000이 비어 있는 것도 확인했습니다.
+
+### R1. 자동 테스트 (`npm test`)
+
+| 실행 | 결과 |
+|---|---|
+| 1~3회차 (요청분) | 3번 모두 tests 1388, pass 1388, fail 0, todo 0 (4.97s / 5.46s / 5.41s) |
+| 4~8회차 (%TEMP% 감시와 함께) | 5번 모두 fail 0 |
+| QA 테스트 추가 후 | tests 1393, pass 1393, fail 0 |
+
+**"디스크 미저장" 불안정 원인 (재현함)**: 다른 테스트 파일 때문이 아닙니다. 모든 테스트 파일은 임시 폴더를 `diary-` 접두어로 만들고 `snapshot()`이 이 이름을 제외합니다. 8회 실행 동안 %TEMP%를 0.1초 간격으로 감시했는데, 새로 생긴 항목 38개가 모두 `diary-*`였습니다. 진짜 원인은 `snapshot()`(`tests/pdf-app.test.js:471`)이 **OS 전역 %TEMP%** 전체(지금 544개)를 비교한다는 점입니다. 그래서 테스트 중 약 0.4초 사이에 VS Code·Office·다른 에이전트가 `*.tmp`, `~DF*.TMP`, `pdf-live-server.log` 같은 파일을 만들면 실패합니다. 다른 프로세스가 100ms마다 %TEMP%에 파일을 만들게 하면 매번 실패합니다.
+
+```
+✖ 업로드·추출·실패 처리 전후로 프로젝트·임시 폴더에 새 파일이 없다
+  + 'C:\\Users\\syste\\AppData\\Local\\Temp\\qa-noise-1793232514870.tmp', …
+```
+
+고칠 방법은 테스트 쪽입니다. 이 테스트 동안만 `process.env.TEMP`·`TMP`(POSIX는 `TMPDIR`)를 새 `mkdtemp` 폴더로 바꿉니다. Windows의 `os.tmpdir()`는 호출할 때마다 환경 변수를 읽습니다. 그러면 그 폴더와 프로젝트 폴더만 비교하면 됩니다. 아니면 %TEMP% 비교를 "추가된 항목 중 이 프로세스의 업로드 내용이 든 파일"으로 좁힙니다. 백엔드가 고치도록 남겨 두었습니다(B-10).
+
+### R2. B-1 재검증 (실제 추출기 + 가짜 요약기 서버, 요청 중 0.1초 간격으로 health 호출)
+
+| 파일 | 결과 | 처리 시간 | health 최대 지연 | 실패한 health | 직후 정상 PDF |
+|---|---|---|---|---|---|
+| bt-4m.pdf (12.9KB) | 200, chars 200,000 | 0.60초 | 41ms | 0 | 200 |
+| bt-16m.pdf (49KB) | 200, chars 200,000 | 0.56초 | 16ms | 0 | 200 |
+| bomb-text-200m.pdf (611KB) | 200, chars 200,000 | 1.31초 | 17ms | 0 | 200 |
+| (추가) 텍스트 없는 연산자 200MB (611KB) | 422 `PDF_NO_TEXT` | 10.3초 | 19ms | 0 | 200 |
+| (추가) 빈 `() Tj` 200MB (509KB) | 422 `PDF_NO_TEXT` | 12.7초 | 23ms | 0 | 200 |
+| (추가) 텍스트 없는 연산자 800MB (2.4MB) | 422 `PDF_TOO_COMPLEX` | **15.2초** | 35ms | 0 | 200 |
+
+- 지난번 19초·279초 동안 서버가 멈추던 현상은 사라졌습니다. 15초 상한도 지켜지고(로그 `PDF_TOO_COMPLEX extraction exceeded 15000ms`), 프로세스도 살아 있습니다. **B-1 해결**로 판정합니다. 단, 메모리는 아래 B-7을 보세요.
+- 화면에서도 2.4MB 파일이 15.2초 뒤 "문서를 읽는 데 오래 걸려요" + [다른 파일 고르기]로 끝났습니다(1280·360px).
+- 워커 관련 새 위험 점검
+  - 취소: 3초 뒤 연결을 끊으면 `[pdf] CANCELLED by client after 3180ms`가 남고, 다음 요청이 0.34초 안에 200을 받습니다. RSS는 1,386MB에서 102MB로 돌아옵니다(terminate 확인).
+  - 동시 요청: 추출 중 두 번째 요청은 503 `PDF_BUSY`입니다.
+  - 워커 실패 후 자리: 힙 16MB로 OOM을 내면 `PDF_TOO_COMPLEX extraction worker out of memory`가 나고 다음 추출은 정상입니다. HTTP에서도 422·취소 뒤 다음 요청이 모두 200이었습니다.
+  - 버퍼 transfer: 라우트는 `bytes`를 먼저 계산하고 본문을 다시 쓰지 않아 문제가 없습니다. 다만 추출기를 직접 부를 때 같은 Buffer를 두 번 넘기면, 두 번째는 ApiError가 아닌 `DataCloneError`(code 25)가 납니다. 이때 띄운 워커는 15초 타이머가 끝날 때까지 대기합니다. 지금 호출 경로에서는 생기지 않아 버그로 세지 않았습니다(제안 S-7).
+- 바뀐 QA 테스트 판단: "추출 시간 상한" 테스트를 8만 항목 + `maxChars`·`maxItemsPerPage` 해제로 바꾼 것은 **원래 의도를 유지하고 오히려 강화**합니다. 기본 상한에서는 같은 PDF가 0.3초 만에 끝나 시간 상한을 시험할 수 없기 때문에 상한을 푸는 게 맞습니다. 여기에 이벤트 루프 지연 300ms 미만 검사가 더해져 "주 스레드가 멈추지 않음"까지 고정합니다. 기본 상한 경로는 바로 다음 테스트와 `pdf-app.test.js` "무거운 PDF"가 따로 확인합니다. 빠진 것은 "상한을 둔 채 실제로 15초를 넘는 PDF"(위 800MB 연산자 폭탄)인데, 테스트 시간이 15초라 자동 테스트에서 뺀 것은 이해됩니다.
+
+### R3. B-2~B-6·rerank 파서 테스트 리뷰
+
+| ID | 판정 | 근거 |
+|---|---|---|
+| B-2 | 해결 | `qa-pdf` todo가 해제됐습니다. `pdf-summary.test.js`가 앞 14,000~15,000자 + 끝 4,000~5,000자, 첫 표지와 끝 표지, 요약기 전체 head 입력에 결론과 `…(중략)…`, 중략 없이 한 구간인 경우까지 확인합니다. |
+| B-3 | 해결 | 채팅은 `starts with Hangul` 같은 종류만 남습니다. rerank 형식 오류는 `keys:`만, 비JSON은 `non-JSON body (len N)`만 남습니다. 세 경우 모두 원문 표지(SECRET)가 없는 것을 확인합니다. |
+| B-4 | 해결 | 조각 2,000자 상한(`CHUNK_HARD_MAX`)을 지키고, 그래도 128개를 넘으면 후보를 앞·뒤 절반씩으로 줄입니다(가운데 조각은 rerank 후보에서 빠짐. PRD Q2 처리로 받아들일 만함). |
+| B-5 | 해결(PM 결정 반영) | 재요청이 실패하면 `RATE_LIMITED`·`AI_TIMEOUT`·`DAILY_LIMIT`·`AI_AUTH_ERROR`·`CONTENT_BLOCKED`·`UPSTREAM_ERROR` 코드를 그대로 넘기고, detail에 첫 답과 재요청 실패가 함께 남습니다. calls 2. |
+| B-6 | 해결(구조) | 제목·파일 이름이 `<document_title>"…"</document_title>`(JSON 따옴표, 120자) 안에 들어갑니다. 닫는 태그 주입은 지워지고, 규칙 1이 이 태그까지 포함합니다. rerank 질의 제목은 100자로 자르고 꺾쇠를 지웁니다. 실제 모델 반응은 확인하지 못했습니다. |
+| rerank 파서 | 해결 | `data`·`rankings/logit`·숫자 문자열 점수·문자열 index를 받습니다. NaN·빈 문자열·범위 밖·소수 문자열 index는 거부합니다. 일부 결과만 오면 남은 자리를 앞쪽 조각으로 채웁니다(S-1·S-2 반영). |
+
+**본문 앞 keep-alive 공백**: 파서(`createRerank`·`createChat` 모두 `res.text()` → `JSON.parse`)는 JSON 문법상 앞뒤 공백·줄바꿈을 원래 받습니다. 하지만 **이를 고정한 테스트는 없었습니다**. 그래서 `tests/qa-pdf.test.js` 끝에 "QA 재검증: 실측 rerank 응답 형식" 5개를 추가했습니다(모두 통과).
+
+1. 실측 형식(`model`·`results[].document.text`·`usage`·`provider: "Nvidia"`·`id`) + 앞 공백 → `rerank` 경로, 호출 2회, `rerankFailure` 없음
+2. `createRerank` 단독, 문서 130개 → 결과 130개, 점수 높은 순, `usage`·`model` 유지
+3. 앞 공백 + 200 안의 per-day error → `DAILY_LIMIT`, 채팅 0회
+4. 공백만 오고 본문이 없는 200 → `head`, `rerankFailure`에 `non-JSON body (len N)`만 남음
+5. 채팅 응답 앞 공백 → 호출 1회로 성공
+
+같은 파일의 낡은 주석("고치기 전까지 todo")도 정리하고 describe 이름을 "QA 결함 회귀 (B-1~B-4)"로 바꿨습니다.
+
+### R4. 화면 회귀 (헤드리스 Edge, 1280·360px)
+
+| 흐름 | 결과 |
+|---|---|
+| 고르기 → 결과 | 0.3초에 "파일을 보내는 중이에요…" + 1단계 진행 중. 2초에 "문서를 읽고 요약하는 중이에요…" + 1단계 ✓ / 2단계 진행 중. "예상 단계 · …짐작해 보여 드려요" 설명 표시. 약 1.9초에 결과가 나오고 포커스는 결과 제목. 처리 중에는 file input이 disabled. |
+| 오류 `PDF_TOO_COMPLEX` | 15.2초 뒤 "문서를 읽는 데 오래 걸려요 / 페이지를 나눠 더 작은 PDF로 올려 주세요." + [다른 파일 고르기](포커스) |
+| 취소 | 0~1ms 안에 대기 상태, "요약을 취소했어요.", 포커스 [PDF 파일 고르기] |
+| 360px | 가로 스크롤 없음(scrollWidth 360 = clientWidth), 44px 미만 버튼 없음, 페이지 예외 0 |
+| 처리 중 [PDF 파일 고르기] | "지금 요약 중이에요. 끝나거나 취소한 뒤 다시 올려 주세요."가 표시되고 5.2초 뒤 사라짐 |
+| 처리 중 파일 놓기 | **안내가 나오지 않음** → B-8 |
+
+참고: 2.4MB 파일은 6초 시점에 "3 요약 (지금쯤 진행 중)"으로 표시되지만 실제로는 아직 추출 중이었습니다. "예상 단계"라고 밝히고 있어 결함으로 세지 않았습니다.
+
+### R5. 새 결함
+
+심각도별: 치명 0, 높음 0, 보통 1, 낮음 3
+
+#### B-7 [보통] 워커 힙 상한이 메모리를 묶지 못함: 2.4MB 파일로 RSS 1.7GB, 4.3MB 파일로 4.2GB
+
+- 위치: `src/pdf.js:279`(`resourceLimits`), `src/config.js:70` 주석("서버 메모리를 다 쓰지 못하게 한다"), CLAUDE.md `src/pdf.js` 항목
+- 재현: 추출기 단독(`createPdfExtractor({ workerMemoryMb })`), 50ms 간격 RSS 샘플
+  - 텍스트 없는 연산자 800MB를 FlateDecode로 압축한 1쪽 PDF(2,441,876바이트): `workerMemoryMb` 128·512 모두 `PDF_TOO_COMPLEX`(15.2초), **rssMax 1,741MB / 1,742MB**
+  - 공백 2,000MB를 압축한 1쪽 PDF(4,360,193바이트): `PDF_NO_TEXT`(14.5초), **rssMax 4,196MB**
+- 기대: 워커 메모리가 대략 `PDF_WORKER_MEMORY_MB`(512) 안에 머묾
+- 원인: `resourceLimits`는 V8 힙만 제한합니다. PDF.js가 압축을 풀어 담는 스트림 버퍼(TypedArray, 힙 밖 메모리)는 제한되지 않습니다. 시간 상한 15초가 간접 상한 역할을 하지만 그 사이 기기 속도만큼 커집니다. 업로드 상한 20MB면 압축 전 약 20GB까지 만들 수 있습니다. 서버는 살아 있었고 terminate 뒤 RSS는 원래대로 돌아왔습니다(1,386 → 102MB). 메모리 8GB 기기라면 스와핑이나 할당 실패가 날 수 있습니다.
+- 수정 제안 (둘 중 하나 또는 함께)
+  1. 주 스레드가 추출 중에 `process.memoryUsage().rss`를 100ms마다 보고, 시작 시점보다 일정량(예: 1GB, 환경 변수) 넘게 늘면 `worker.terminate()` → `PDF_TOO_COMPLEX`.
+  2. PDF.js에 넘기기 전에 FlateDecode 스트림을 `zlib.inflateSync(…, { maxOutputLength })`로 미리 풀어 보고, 압축 해제 합계가 상한(예: 100MB)을 넘으면 `PDF_TOO_COMPLEX`.
+
+  그리고 config 주석과 CLAUDE.md의 "메모리를 묶는다"는 표현을 실제 동작에 맞게 고칩니다.
+- 관련 요구사항: PRD 4절 비기능(PDF 폭탄 대비·메모리), S-9
+
+#### B-8 [낮음] 처리 중에 파일을 놓으면 "지금 요약 중이에요" 안내가 나오지 않음
+
+- 위치: `index_pdf.html:1350`
+- 재현: 요약 중(slow10)에 진행 카드 위로 PDF를 끌어 놓습니다(CDP `Input.dispatchDragEvent`, `dragOperationsMask` 1과 65535 모두).
+- 기대: CLAUDE.md "처리 중에 파일을 놓거나 고르면 진행 카드 안에 '지금 요약 중이에요…' 안내가 5초"
+- 실제: 끄는 동안 제목만 "요약하는 중이라 지금은 받을 수 없어요"로 바뀝니다. 놓으면 capture 단계의 `drop` 이벤트가 **0회**이고 `busy-note`는 hidden 상태로 남습니다. 고르기 버튼으로는 안내가 정상으로 나옵니다.
+- 원인: 처리 중 `dragover`에서 `dropEffect = 'none'`으로 두면 브라우저가 놓기를 취소해 `drop` 이벤트를 보내지 않습니다. 그래서 `handleFiles` → `showBusyNote`까지 가지 못합니다.
+- 수정 제안: 처리 중에도 `dropEffect`를 `'copy'`로 두고 `drop`에서 `handleFiles`가 안내를 띄우게 합니다(지금도 `state.busy`면 업로드하지 않음). 또는 `dragleave`/`dragend`에서 처리 중이면 `showBusyNote()`를 부릅니다.
+
+#### B-9 [낮음] 쪽당 항목 수 상한으로 잘린 쪽을 사용자에게 알리지 않음
+
+- 위치: `src/pdf.js:392`(`itemCappedPages`를 셈), `src/pdf.js:443-448`(`documentNotices`에 해당 문구 없음). `pdf-summary.js`·`index_pdf.html`도 이 값을 쓰지 않습니다.
+- 재현: `createPdfExtractor({ maxItemsPerPage: 10 })`로 30줄짜리 쪽을 추출하면 `itemCappedPages: 1`이 되고 텍스트는 10줄뿐입니다. 하지만 `documentNotices` 결과에 안내가 없습니다.
+- 영향: 글자를 하나씩 따로 배치한 아주 빽빽한 쪽(항목 5만 개 초과)은 뒷부분이 안내 없이 빠지고, 결과의 `processedPages`는 그 쪽을 다 읽은 것처럼 셉니다. 정상 문서에서는 드뭅니다.
+- 수정 제안: `itemCappedPages > 0`이면 "글자가 아주 많은 쪽 N개는 앞부분만 읽었어요."를 `documentNotices`에 넣고 `truncated` 표시에도 반영합니다.
+
+#### B-10 [낮음, 테스트 코드] "디스크 미저장" 테스트가 OS 전역 %TEMP%를 비교해 다른 프로그램 때문에 실패함
+
+- 위치: `tests/pdf-app.test.js:471`
+- 재현·원인·수정: R1 참고. 제품 동작 문제는 아닙니다.
+
+### R6. 제안
+
+- S-7 `createPdfExtractor`: 넘겨받은 Buffer가 비었거나 이미 분리(detached)됐으면 워커를 띄우기 전에 `PDF_CORRUPTED`나 `INTERNAL_ERROR` ApiError로 바로 거부합니다. `postMessage` 예외(`DataCloneError`)가 나면 워커를 바로 terminate합니다. 지금은 호출 경로상 생기지 않습니다.
+
+### R7. 확인하지 못한 것
+
+- 실제 OpenRouter 응답(요청대로 호출하지 않음). B-6 주입 제목에 대한 실제 모델 반응.
+- B-7의 20MB급(압축 전 약 20GB) 폭탄은 이 기기(여유 메모리 6GB)를 위험하게 할 수 있어 실행하지 않았습니다. 4.3MB 파일(RSS 4.2GB)까지만 측정했습니다.
+- NVDA 낭독.
+
+### R8. 이번에 쓴 도구 (스크래치, 커밋 안 함)
+
+`C:\Users\syste\AppData\Local\Temp\claude\D--study-inflearn-VibeCoding-Study-05\2fcaa088-d173-45af-b4e8-54c22e5c64f0\scratchpad\qa2\` 아래: `b1-probe.mjs`(HTTP + health 지연·RSS), `mem-one.mjs`(추출기 단독 RSS), `worker-risks.mjs`(취소·동시·OOM·버퍼 재사용), `reuse.mjs`, `make-ops.mjs`(연산자 폭탄), `watch-tmp.mjs`·`noise-tmp.mjs`(%TEMP% 감시·재현), `ui-recheck.mjs`·`ui-busy.mjs`(화면), 스크린샷 `shot-1280-*.png`·`shot-360-*.png`

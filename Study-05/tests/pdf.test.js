@@ -12,6 +12,7 @@ import {
   documentNotices,
   hasPdfSignature,
   LocalBinaryDataFactory,
+  watchMemoryGrowth,
 } from "../src/pdf.js";
 import { buildPdf, charByChar, lines } from "./fixtures/pdf-builder.js";
 
@@ -119,12 +120,123 @@ describe("텍스트 추출", () => {
     assert.deepEqual(documentNotices(r), ["글자가 없는 페이지 2쪽(스캔 이미지 등)은 요약에서 빠졌어요."]);
   });
 
-  test("업로드 버퍼를 바꾸지 않는다", async () => {
-    const pdf = buildPdf([{ items: lines(KO_LINES) }]);
+  test("transfer: false면 업로드 버퍼를 바꾸지 않는다", async () => {
+    const pdf = buildPdf([{ items: lines(KO_LINES) }, { items: lines([EN_TEXT]) }]);
     const copy = Buffer.from(pdf);
-    await extract(pdf);
-    assert.equal(pdf.length, copy.length);
+    await createPdfExtractor({ transfer: false })(pdf);
     assert.ok(pdf.equals(copy));
+  });
+
+  test("기본은 ArrayBuffer 전체를 쓰는 버퍼를 워커로 넘기고(복사 없음), 풀의 일부인 작은 버퍼는 복사해 넘긴다", async () => {
+    const big = Buffer.alloc(8192);
+    const pdf = buildPdf([{ items: lines(KO_LINES) }]);
+    pdf.copy(big);
+    const r = await extract(big);
+    assert.equal(r.bytes, 8192);
+    assert.equal(big.length, 0, "transfer 뒤에는 비워진다");
+    const pooled = Buffer.from(pdf); // 4KB 미만 → Node 버퍼 풀의 일부
+    await extract(pooled);
+    assert.equal(pooled.length, pdf.length);
+  });
+});
+
+describe("워커 추출 (QA B-1)", () => {
+  const heavyPage = (n) => buildPdf([{ items: Array.from({ length: n }, () => ({ text: "Hello bomb text here", x: 72, y: 720 })) }]);
+
+  test("항목 수 상한으로 잘린 쪽은 안내 문구로 알린다 (QA B-9), 순서는 페이지 → 글자 → 항목 → 글자 없는 쪽", async () => {
+    const pdf = buildPdf([{ items: lines(Array.from({ length: 30 }, (_, i) => `Line ${i} ${EN_TEXT}`)) }]);
+    const r = await createPdfExtractor({ maxItemsPerPage: 10 })(pdf);
+    assert.deepEqual(documentNotices(r), ["내용이 아주 많은 쪽 1개는 앞부분만 읽었어요."]);
+    const all = documentNotices({ pages: 250, truncatedPages: true, truncatedChars: true, itemCappedPages: 2, pagesWithoutText: 1 });
+    assert.deepEqual(all, [
+      "250쪽 중 앞 200쪽만 읽었어요.",
+      "글자가 많아 앞부분 200,000자까지만 읽었어요.",
+      "내용이 아주 많은 쪽 2개는 앞부분만 읽었어요.",
+      "글자가 없는 페이지 1쪽(스캔 이미지 등)은 요약에서 빠졌어요.",
+    ]);
+  });
+
+  test("watchMemoryGrowth: 시작 시점 대비 증가량이 상한을 넘을 때 한 번만 알린다 (QA B-7)", async () => {
+    const values = [100, 150, 900, 1300, 5000];
+    let i = 0;
+    const calls = [];
+    const stop = watchMemoryGrowth({ probe: () => values[Math.min(i++, values.length - 1)], limitBytes: 1000, intervalMs: 5, onExceed: (g) => calls.push(g) });
+    await new Promise((r) => setTimeout(r, 80));
+    stop();
+    assert.deepEqual(calls, [1200]); // 1300 - 100. 그 뒤(5000)는 다시 부르지 않음
+  });
+
+  test("watchMemoryGrowth: 상한 안이면 부르지 않고, stop 뒤에는 재지 않는다", async () => {
+    let n = 0;
+    const stop = watchMemoryGrowth({ probe: () => (n++, 100), limitBytes: 10, intervalMs: 5, onExceed: () => assert.fail("should not fire") });
+    await new Promise((r) => setTimeout(r, 40));
+    stop();
+    const after = n;
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(n, after);
+  });
+
+  test("추출 중 RSS 증가가 상한을 넘으면 워커를 멈추고 PDF_TOO_COMPLEX, 다음 추출은 정상 (측정 함수 주입)", async () => {
+    let calls = 0;
+    const probe = () => (calls++ === 0 ? 0 : 2048 * 1024 * 1024); // 시작 뒤 첫 측정부터 2GB 증가로 보이게
+    const ex = createPdfExtractor({ maxRssGrowthMb: 1024, memoryCheckMs: 10, memoryProbe: probe, maxChars: 1e9, maxItemsPerPage: 1e9 });
+    const t = Date.now();
+    await assert.rejects(ex(heavyPage(80000)), (err) => err.code === "PDF_TOO_COMPLEX" && /memory grew 2048MB \(limit 1024MB\)/.test(err.detail));
+    assert.ok(Date.now() - t < 2000, `${Date.now() - t}ms`);
+    assert.equal((await extract(buildPdf([{ items: lines(KO_LINES) }]))).language, "ko");
+  });
+
+  test("maxRssGrowthMb: 0이면 RSS 감시를 하지 않는다", async () => {
+    let calls = 0;
+    const r = await createPdfExtractor({ maxRssGrowthMb: 0, memoryProbe: () => (calls++, 1e12) })(buildPdf([{ items: lines(KO_LINES) }]));
+    assert.equal(r.language, "ko");
+    assert.equal(calls, 0);
+  });
+
+  test("이미 넘겨져 비워진 버퍼를 다시 주면 워커를 기다리지 않고 바로 INTERNAL_ERROR (QA S-7)", async () => {
+    const big = Buffer.alloc(8192);
+    buildPdf([{ items: lines(KO_LINES) }]).copy(big);
+    await extract(big);
+    const t = Date.now();
+    await assert.rejects(extract(big), (err) => err.code === "INTERNAL_ERROR" && /already transferred/.test(err.detail));
+    assert.ok(Date.now() - t < 500);
+  });
+
+  test("쪽당 항목 수 상한을 넘으면 그 쪽의 나머지를 읽지 않고 표시한다", async () => {
+    const pdf = buildPdf([{ items: lines(Array.from({ length: 30 }, (_, i) => `Line ${i} ${EN_TEXT}`)) }]);
+    const r = await createPdfExtractor({ maxItemsPerPage: 10 })(pdf);
+    assert.equal(r.itemCappedPages, 1);
+    assert.equal(r.pageTexts[0].text.split("\n").length, 10);
+  });
+
+  test("글자 상한에 닿으면 남은 항목을 읽지 않고 멈춘다", async () => {
+    const t = Date.now();
+    const r = await createPdfExtractor({ maxChars: 1000 })(heavyPage(80000));
+    assert.equal(r.characters, 1000);
+    assert.equal(r.truncatedChars, true);
+    assert.ok(Date.now() - t < 3000, `${Date.now() - t}ms`);
+  });
+
+  test("워커 메모리 상한을 넘으면 PDF_TOO_COMPLEX, 프로세스는 살아 있다", async () => {
+    const extractSmall = createPdfExtractor({ workerMemoryMb: 16, maxChars: 1e9, maxItemsPerPage: 1e9, timeoutMs: 30000 });
+    await expectCode(extractSmall(heavyPage(80000)), "PDF_TOO_COMPLEX");
+    // 다음 추출도 정상
+    assert.equal((await extract(buildPdf([{ items: lines(KO_LINES) }]))).language, "ko");
+  });
+
+  test("워커 추출 중 abort → cancelled, 결과는 워커가 끝난 뒤에 정해진다", async () => {
+    const controller = new AbortController();
+    const run = createPdfExtractor({ maxChars: 1e9, maxItemsPerPage: 1e9 })(heavyPage(80000), { signal: controller.signal });
+    setTimeout(() => controller.abort(), 100);
+    const t = Date.now();
+    await assert.rejects(run, (err) => err.cancelled === true);
+    assert.ok(Date.now() - t < 2000);
+  });
+
+  test("이미 abort된 signal이면 워커를 띄우지 않고 cancelled", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await assert.rejects(extract(buildPdf([{ items: lines(KO_LINES) }]), { signal: controller.signal }), (err) => err.cancelled === true);
   });
 });
 

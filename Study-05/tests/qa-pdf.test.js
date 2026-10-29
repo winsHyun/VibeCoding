@@ -4,7 +4,8 @@
 // - 채팅 답 변형(코드블록·깨진 JSON·영어·잘림·지시 주입 답·비JSON 200)과 실패 조합별 fetch ≤ 4
 // - HTTP: 업로드 도중 끊김·멈춘 업로드 뒤 자리 해제, 이상한 X-File-Name, 출처 변형
 // - 화면(index_pdf.html) 순수 함수: describeError(PRD 8.6 재시도 열)·checkFiles·복사 형식(10.3)·normalizeSummary
-// - todo: QA에서 찾은 결함(QA_PDF_REPORT.md의 B-ID). 고치면 { todo } 를 지워 일반 테스트로 바꾼다
+// - QA에서 찾은 결함(QA_PDF_REPORT.md의 B-ID) 회귀 테스트(B-1~B-4는 2026-10-29 수정 확인으로 todo 해제)
+// - 재검증(2026-10-29): 실측 rerank 응답 형식(본문 앞 keep-alive 공백, 문서 130개)
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -111,6 +112,11 @@ describe("QA rerank 응답 형식 변형 (A2 미확인 대비)", () => {
     "top_n보다 적은 결과(일부만)": () => json({ results: [{ index: 3, relevance_score: 0.9 }, { index: 1, relevance_score: 0.5 }] }),
     "같은 index 중복": () => json({ results: [{ index: 2, relevance_score: 0.9 }, { index: 2, relevance_score: 0.8 }] }),
     "document 필드 포함": (b) => json({ results: b.documents.map((text, index) => ({ index, relevance_score: index, document: { text } })) }),
+    // 2026-10-29 결정: 아래 형식도 받는다 (rerank 파서 견고화). 일부만 오면 남는 자리는 점수 없는 조각을 앞쪽부터 채운다
+    "data 배열(Jina·Voyage식)": (b) => json({ data: b.documents.map((_, index) => ({ index, relevance_score: 1 })) }),
+    "NVIDIA NIM식 rankings/logit": () => json({ rankings: [{ index: 0, logit: 1.2 }] }),
+    "문자열 점수": () => json({ results: [{ index: 1, relevance_score: "0.9" }] }),
+    "문자열 index": () => json({ results: [{ index: "1", relevance_score: 0.9 }] }),
   };
   for (const [name, rerank] of Object.entries(accepted)) {
     test(`${name} → rerank 경로, 호출 2회`, async () => {
@@ -125,11 +131,10 @@ describe("QA rerank 응답 형식 변형 (A2 미확인 대비)", () => {
 
   // 형식이 다르면 실패시키지 않고 head로 계속한다 (호출을 더 쓰지 않음)
   const fallback = {
-    "data 배열(Jina·Voyage식)": (b) => json({ data: b.documents.map((_, index) => ({ index, relevance_score: 1 })) }),
     "results 안에 data": () => json({ results: { data: [{ index: 0, relevance_score: 1 }] } }),
-    "NVIDIA NIM식 rankings/logit": () => json({ rankings: [{ index: 0, logit: 1.2 }] }),
-    "문자열 점수": () => json({ results: [{ index: 1, relevance_score: "0.9" }] }),
-    "문자열 index": () => json({ results: [{ index: "1", relevance_score: 0.9 }] }),
+    "숫자가 아닌 문자열 점수": () => json({ results: [{ index: 1, relevance_score: "high" }] }),
+    "빈 문자열 index": () => json({ results: [{ index: "", relevance_score: 0.9 }] }),
+    "문자열 index 범위 밖": (b) => json({ results: [{ index: String(b.documents.length), relevance_score: 0.9 }] }),
     "index 범위 밖": (b) => json({ results: [{ index: b.documents.length, relevance_score: 0.9 }] }),
     "음수 index": () => json({ results: [{ index: -1, relevance_score: 0.9 }] }),
     "소수 index": () => json({ results: [{ index: 1.5, relevance_score: 0.9 }] }),
@@ -392,12 +397,23 @@ function functionSource(name) {
   }
   throw new Error(`unbalanced braces in ${name}`);
 }
-const NAMES = ["formatMb", "checkFiles", "describeError", "formatPages", "normalizeSummary", "formatPlainText", "formatPointsText"];
+const NAMES = ["formatMb", "checkFiles", "describeError", "formatPages", "normalizeSummary", "formatPlainText", "formatPointsText", "decideDrop"];
 const ui = vm.runInNewContext(`${NAMES.map(functionSource).join("\n")}\n({ ${NAMES.join(", ")} })`);
 
 describe("QA 화면 index_pdf.html 순수 함수", () => {
   test("모델 출력을 HTML로 해석하는 API를 쓰지 않는다", () => {
     assert.doesNotMatch(script, /\.innerHTML\s*=|outerHTML\s*=|insertAdjacentHTML|document\.write\(/);
+  });
+
+  // B-8 회귀: 처리 중 dropEffect가 'none'이면 브라우저가 drop을 보내지 않아 "지금 요약 중" 안내가 뜨지 않았다
+  test("decideDrop: 처리 중에도 dropEffect 'copy'(drop을 받음), 업로드 대신 안내 (B-8)", () => {
+    assert.deepEqual({ ...ui.decideDrop(true, true) }, { dropEffect: "copy", action: "busy-note" });
+    assert.deepEqual({ ...ui.decideDrop(true, false) }, { dropEffect: "copy", action: "upload" });
+    assert.deepEqual({ ...ui.decideDrop(false, false) }, { dropEffect: "none", action: "ignore" });
+    assert.deepEqual({ ...ui.decideDrop(false, true) }, { dropEffect: "none", action: "ignore" });
+    // dragover·drop 처리기가 이 함수를 실제로 쓴다 (예전처럼 busy면 'none'으로 되돌아가지 않게)
+    assert.match(script, /dropEffect = decideDrop\(hasFiles\(e\), state\.busy\)\.dropEffect/);
+    assert.match(script, /action === 'busy-note'\) showBusyNote\(\)/);
   });
 
   test("describeError: PRD 8.6 '재시도' 열대로 버튼을 고르고 서버 문구를 그대로 쓴다", () => {
@@ -476,23 +492,45 @@ describe("QA 화면 index_pdf.html 순수 함수", () => {
 });
 
 // ---------------------------------------------------------------------------
-// QA에서 찾은 결함 (QA_PDF_REPORT.md). 고치기 전까지 todo로 두고, 고치면 { todo }를 지운다
-describe("QA 결함 기록 (todo)", () => {
-  test("B-1 한 줄에 텍스트 항목이 많아도 buildPageText가 거의 선형 시간", { todo: "B-1: 문자열 끝 검사(/\\s$/.test(line), line.at(-1))가 긴 줄에서 O(n²)" }, () => {
+// QA에서 찾은 결함 (QA_PDF_REPORT.md) 회귀 테스트. 처음에는 todo였고 수정 뒤 일반 테스트로 바꿨다
+describe("QA 결함 회귀 (B-1~B-4)", () => {
+  test("B-1 한 줄에 텍스트 항목이 많아도 buildPageText가 거의 선형 시간", () => {
     const items = Array.from({ length: 25000 }, () => ({ str: "Hello bomb text here", transform: [12, 0, 0, 12, 72, 720], width: 100, hasEOL: false }));
     const t = Date.now();
     buildPageText(items);
     assert.ok(Date.now() - t < 300, `${Date.now() - t}ms`);
   });
 
-  test("B-1 한 쪽이 무거운 PDF도 추출 시간 상한(timeoutMs)을 지킨다", { todo: "B-1: PDF.js·줄 재구성이 같은 스레드에서 이벤트 루프를 막아 타이머가 돌지 못함" }, async () => {
-    const heavy = buildPdf([{ items: Array.from({ length: 20000 }, () => ({ text: "Hello bomb text here", x: 72, y: 720 })) }]);
+  test("B-1 한 쪽이 무거운 PDF도 추출 시간 상한(timeoutMs)을 지킨다", async () => {
+    // 글자·항목 상한을 풀어 일부러 오래 걸리게 한다 (상한이 있으면 이 PDF는 0.3초 안에 정상으로 끝남 — 아래 B-1 실제 상한 테스트)
+    const heavy = buildPdf([{ items: Array.from({ length: 80000 }, () => ({ text: "Hello bomb text here", x: 72, y: 720 })) }]);
+    const extract = createPdfExtractor({ timeoutMs: 200, maxChars: 1e9, maxItemsPerPage: 1e9 });
+    let maxLag = 0;
+    let last = Date.now();
+    const lag = setInterval(() => {
+      maxLag = Math.max(maxLag, Date.now() - last - 20);
+      last = Date.now();
+    }, 20);
     const t = Date.now();
-    await assert.rejects(createPdfExtractor({ timeoutMs: 200 })(heavy), (err) => err.code === "PDF_TOO_COMPLEX");
+    try {
+      await assert.rejects(extract(heavy), (err) => err.code === "PDF_TOO_COMPLEX");
+    } finally {
+      clearInterval(lag);
+    }
     assert.ok(Date.now() - t < 1000, `${Date.now() - t}ms`);
+    assert.ok(maxLag < 300, `event loop blocked ${maxLag}ms`); // 추출은 워커에서 돌아 주 스레드가 멈추지 않는다
   });
 
-  test("B-2 head 경로: 마지막 문단이 아주 길어도 끝부분이 들어간다", { todo: "B-2: 앞부분이 마지막 문단을 잘라 쓰면 끝부분 루프가 돌지 않음" }, () => {
+  test("B-1 기본 상한(글자·항목)이 있으면 무거운 한 쪽도 빨리 정상 결과", async () => {
+    const heavy = buildPdf([{ items: Array.from({ length: 80000 }, () => ({ text: "Hello bomb text here", x: 72, y: 720 })) }]);
+    const t = Date.now();
+    const r = await createPdfExtractor({ timeoutMs: 15000 })(heavy);
+    assert.ok(Date.now() - t < 5000, `${Date.now() - t}ms`);
+    assert.equal(r.characters, 200000);
+    assert.equal(r.truncatedChars, true);
+  });
+
+  test("B-2 head 경로: 마지막 문단이 아주 길어도 끝부분이 들어간다", () => {
     const giant = "시작표지 " + "가나다라마바사 아자차카타파하. ".repeat(3000) + "끝표지결론";
     for (const pageTexts of [[{ page: 1, text: giant }], [{ page: 1, text: "짧은 머리말 쪽이에요." }, { page: 2, text: giant }]]) {
       const { groups } = selectHeadTail(toPieces(pageTexts), 20000);
@@ -500,17 +538,76 @@ describe("QA 결함 기록 (todo)", () => {
     }
   });
 
-  test("B-3 FAILED 로그에 모델 답 원문이 들어가지 않는다 (PRD 8.7)", { todo: "B-3: AI_BAD_RESPONSE detail에 답 앞 80자, rerank 형식 오류 detail에 응답 120자" }, async () => {
+  test("B-3 FAILED 로그에 모델 답 원문이 들어가지 않는다 (PRD 8.7)", async () => {
     const { fetchImpl } = fakeFetch({ chat: (b) => chatBody("비밀 문서의 내용을 그대로 옮긴 답 SECRET-TEXT", b.model) });
     const err = await summarizer(fetchImpl)(shortDoc()).catch((e) => e);
     assert.equal(err.code, "AI_BAD_RESPONSE");
     assert.doesNotMatch(err.detail, /SECRET-TEXT/);
   });
 
-  test("B-4 rerank 조각은 PRD 9.2대로 2,000자를 넘지 않는다", { todo: "B-4: 조각 수가 128을 넘으면 maxSize를 비율대로 키워 2,000자를 넘김" }, () => {
+  test("B-4 rerank 조각은 PRD 9.2대로 2,000자를 넘지 않는다", () => {
     const pages = Array.from({ length: 160 }, (_, i) => ({ page: i + 1, text: `P${i + 1} ` + "word ".repeat(250) }));
     const chunks = chunkForRerank(toPieces(pages), 128);
     assert.ok(chunks.length <= 128);
     assert.ok(Math.max(...chunks.map((c) => c.length)) <= 2000, `max ${Math.max(...chunks.map((c) => c.length))}`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 2026-10-29 재검증 추가 (QA_PDF_REPORT.md "재검증"): 실제 OpenRouter rerank 응답(2026-10-29 실측)은
+// { model, results: [{ index, relevance_score, document: { text } }], usage, provider: "Nvidia", id } 형식이고
+// 본문 앞에 keep-alive 공백·줄바꿈이 여러 줄 붙어 온다. 문서 130개도 200으로 받았다.
+describe("QA 재검증: 실측 rerank 응답 형식 (본문 앞 keep-alive 공백)", () => {
+  const KEEPALIVE = "\n\n         \n\n         \n\n";
+  const withKeepAlive = (obj, status = 200) => new Response(KEEPALIVE + JSON.stringify(obj), { status, headers: { "content-type": "application/json" } });
+  const liveLike = (b) =>
+    withKeepAlive({
+      model: b.model,
+      results: b.documents
+        .map((text, index) => ({ index, relevance_score: Number((0.0087 + index / 10000).toFixed(4)), document: { text } }))
+        .sort((x, y) => y.relevance_score - x.relevance_score),
+      usage: { total_tokens: 4321 },
+      provider: "Nvidia",
+      id: "gen-rerank-qa",
+    });
+
+  test("요약기 전체: 앞 공백이 붙은 실측 형식 → rerank 경로, 호출 2회, rerank 실패 기록 없음", async () => {
+    const { fetchImpl, calls } = fakeFetch({ rerank: liveLike, chat: okChat });
+    const result = await summarizer(fetchImpl)(longDoc());
+    assert.equal(result.coverage.method, "rerank");
+    assert.equal(result.rerankModel, "rr:free");
+    assert.equal(result.rerankFailure, undefined);
+    assert.deepEqual(calls.map((c) => c.kind), ["rerank", "chat"]);
+  });
+
+  test("createRerank 단독: 문서 130개, 점수 높은 순, usage·model 유지", async () => {
+    const rerank = createRerank({ apiKey: "test-key", fetchImpl: async (_url, init) => liveLike(JSON.parse(init.body)) });
+    const documents = Array.from({ length: 130 }, (_, i) => `doc ${i}`);
+    const r = await rerank({ model: "rr:free", query: "q", documents, timeoutMs: 1000 });
+    assert.equal(r.results.length, 130);
+    assert.equal(r.results[0].index, 129);
+    assert.equal(r.results.at(-1).index, 0);
+    assert.equal(r.model, "rr:free");
+    assert.deepEqual(r.usage, { total_tokens: 4321 });
+  });
+
+  test("앞 공백 + 200 안의 per-day error → DAILY_LIMIT, 채팅 안 부름", async () => {
+    const { fetchImpl, calls } = fakeFetch({ rerank: () => withKeepAlive({ error: { code: 429, message: "Rate limit exceeded: free-models-per-day" } }), chat: okChat });
+    await assert.rejects(summarizer(fetchImpl)(longDoc()), (err) => err.code === "DAILY_LIMIT");
+    assert.equal(calls.length, 1);
+  });
+
+  test("공백만 온 200 본문(본문이 끝내 안 옴) → 형식 오류로 head, 원문 없이 길이만 기록", async () => {
+    const { fetchImpl } = fakeFetch({ rerank: () => new Response(KEEPALIVE, { status: 200 }), chat: okChat });
+    const result = await summarizer(fetchImpl)(longDoc());
+    assert.equal(result.coverage.method, "head");
+    assert.match(String(result.rerankFailure), /non-JSON body \(len \d+\)/);
+  });
+
+  test("채팅 응답도 본문 앞 keep-alive 공백을 받는다 (호출 1회)", async () => {
+    const { fetchImpl, calls } = fakeFetch({ chat: (b) => withKeepAlive({ model: b.model, choices: [{ message: { content: JSON.stringify(GOOD) }, finish_reason: "stop" }] }) });
+    const result = await summarizer(fetchImpl)(shortDoc());
+    assert.equal(result.oneLine, GOOD.oneLine);
+    assert.equal(calls.length, 1);
   });
 });
