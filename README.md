@@ -15,6 +15,8 @@ Claude Code와 대화하며 **PRD(제품 요구사항 문서)를 먼저 쓰고**
 ![Electron](https://img.shields.io/badge/Electron-47848F?style=for-the-badge&logo=electron&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)
 ![OpenRouter](https://img.shields.io/badge/OpenRouter-6566F1?style=for-the-badge&logo=openai&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 
 </div>
 
@@ -31,6 +33,7 @@ Claude Code와 대화하며 **PRD(제품 요구사항 문서)를 먼저 쓰고**
 | 04 | [🥬 냉장고를 부탁해](#-study-04--냉장고를-부탁해-ai-레시피-추천) | 냉장고 사진 → 재료 인식 → AI 레시피 추천 | Express · OpenRouter · sharp |
 | 05 | [📔 공감 AI 다이어리](#-study-05--공감-ai-다이어리) | 한 줄 일기의 감정을 분석하고 공감 답장 | Express · OpenRouter |
 | 05+ | [📄 PDF 한눈 요약](#-study-05-pdf--pdf-한눈-요약) | PDF를 올리면 한 줄 요약·요점·키워드를 한국어로 정리 | unpdf · OpenRouter rerank |
+| 06 | [🛒 쇼핑 리스트](#-study-06--쇼핑-리스트-supabase--vercel) | Supabase DB에 저장하고 Vercel로 배포한 쇼핑 목록 | Supabase · Vercel |
 
 ---
 
@@ -234,26 +237,58 @@ npm start              # → http://127.0.0.1:3000/pdf  (index_pdf.html)
 
 ---
 
+## 🛒 Study-06 · 쇼핑 리스트 (Supabase + Vercel)
+
+> 살 물건을 추가하고 체크하는 쇼핑 목록입니다. `localStorage` 대신 **Supabase 데이터베이스**에 저장하고, **Vercel**로 배포했습니다.
+
+**🌐 배포 주소: https://shopping-list-study06.vercel.app**
+
+<p align="center">
+  <img src="Study-06/screenshot.png" alt="쇼핑 리스트" width="520">
+</p>
+
+**주요 기능**
+- ➕ 아이템 추가 · ☑️ 체크 · ❌ 삭제 · 🧹 체크된 항목 한 번에 삭제
+- 📊 전체·완료 개수 표시
+- 🗄️ Supabase `shopping_items` 테이블에 저장 — 새로고침하거나 다른 기기에서 열어도 같은 목록
+- 🔁 예전 버전이 `localStorage`에 남긴 목록은 첫 실행 때 **DB로 자동 이전**
+- ⚡ 체크·삭제는 화면을 먼저 바꾸고 DB에 반영, 실패하면 DB 상태로 되돌림
+
+**🤖 MCP로 개발** — Claude Code가 **Supabase MCP**로 테이블·RLS 정책을 만들고, **Playwright MCP**로 브라우저에서 동작을 확인했습니다.
+
+> ⚠️ 로그인 기능이 없어 누구나 목록을 읽고 고칠 수 있는 **공용 목록**입니다. (RLS 정책으로 `anon` 역할에 읽기·쓰기 허용)
+
+```bash
+# Study-06/index.html 을 브라우저로 열면 바로 실행 (Supabase에 직접 연결)
+cd Study-06
+npx vercel deploy --prod   # Vercel로 다시 배포
+```
+
+---
+
 ## 🧰 기술 스택 정리
 
 ### 프로젝트별 한눈에 보기
 
-| 구분 | 01 숫자 인식 | 02 Todo | 03 퀴즈 | 03+ 퀴즈 고급 | 04 냉장고 | 05 다이어리 |
-|---|:-:|:-:|:-:|:-:|:-:|:-:|
-| HTML / CSS / JavaScript | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 빌드 도구 없는 순수 프런트엔드 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `localStorage` | | ✅ | | ✅ | ✅ | |
-| Node.js | ✅ | | | | ✅ | ✅ |
-| Express 5 | | | | | ✅ | ✅ |
-| TensorFlow.js (CNN) | ✅ | | | | | |
-| Electron (데스크톱) | ✅ | | | | | |
-| sharp (이미지 처리) | | | | | ✅ | |
-| OpenRouter API (LLM) | | | | | ✅ | ✅ |
-| JSON 파일 저장소 | | | | | ✅ | ✅ |
-| 테스트 (`node --test` 등) | | | | ✅ | ✅ | ✅ |
-| PDF 텍스트 추출 (unpdf) | | | | | | ✅ |
-| Claude Code 커스텀 명령 | | | | ✅ | | |
-| Claude Code 서브 에이전트 | | | | | ✅ | ✅ |
+| 구분 | 01 숫자 인식 | 02 Todo | 03 퀴즈 | 03+ 퀴즈 고급 | 04 냉장고 | 05 다이어리 | 06 쇼핑 |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| HTML / CSS / JavaScript | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 빌드 도구 없는 순수 프런트엔드 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `localStorage` | | ✅ | | ✅ | ✅ | | |
+| Node.js | ✅ | | | | ✅ | ✅ | |
+| Express 5 | | | | | ✅ | ✅ | |
+| TensorFlow.js (CNN) | ✅ | | | | | | |
+| Electron (데스크톱) | ✅ | | | | | | |
+| sharp (이미지 처리) | | | | | ✅ | | |
+| OpenRouter API (LLM) | | | | | ✅ | ✅ | |
+| JSON 파일 저장소 | | | | | ✅ | ✅ | |
+| Supabase (PostgreSQL · RLS) | | | | | | | ✅ |
+| Vercel 배포 | | | | | | | ✅ |
+| 테스트 (`node --test` 등) | | | | ✅ | ✅ | ✅ | |
+| PDF 텍스트 추출 (unpdf) | | | | | | ✅ | |
+| Claude Code 커스텀 명령 | | | | ✅ | | | |
+| Claude Code 서브 에이전트 | | | | | ✅ | ✅ | |
+| Claude Code MCP (Supabase · Playwright) | | | | | | | ✅ |
 
 ### 분야별 정리
 
@@ -267,9 +302,11 @@ npm start              # → http://127.0.0.1:3000/pdf  (index_pdf.html)
 | 📄 **문서 처리** | unpdf(PDF.js) — 워커 스레드 텍스트 추출, OpenRouter rerank로 중요 조각 선택 | 05 |
 | 🖼️ **이미지 처리** | sharp — 사진 리사이즈·3×3 조각 분할 | 04 |
 | 💾 **데이터 저장** | `localStorage`, IndexedDB(모델 저장), JSON 파일(원자적 쓰기) | 01, 02, 03+, 04, 05 |
+| 🗄️ **데이터베이스** | Supabase (PostgreSQL, RLS 정책, `supabase-js`) | 06 |
+| 🌐 **배포** | Vercel (정적 사이트, CLI 배포) | 06 |
 | 🧪 **테스트** | Node.js 내장 테스트 러너 (`node --test`) | 03+, 04, 05 |
 | 🪟 **실행 스크립트** | Windows 배치 파일 (`.bat`) | 01, 04, 05 |
-| 🛠️ **AI 개발 도구** | Claude Code, `CLAUDE.md`, 커스텀 슬래시 명령, 서브 에이전트, PRD 기반 개발 | 전체 |
+| 🛠️ **AI 개발 도구** | Claude Code, `CLAUDE.md`, 커스텀 슬래시 명령, 서브 에이전트, MCP(Supabase · Playwright), PRD 기반 개발 | 전체 |
 
 ---
 
@@ -284,7 +321,8 @@ VibeCoding/
 ├── Study-03/            🧠 상식 퀴즈 게임 (기본)
 │   └── Study-03-basic/      🎯 상식 퀴즈 게임 (고급)
 ├── Study-04/            🥬 냉장고를 부탁해 (AI 레시피 추천)
-└── Study-05/            📔 공감 AI 다이어리 + 📄 PDF 한눈 요약 (/pdf)
+├── Study-05/            📔 공감 AI 다이어리 + 📄 PDF 한눈 요약 (/pdf)
+└── Study-06/            🛒 쇼핑 리스트 (Supabase + Vercel)
 ```
 
 <div align="center">
