@@ -16,6 +16,33 @@ const clearCheckedButton = document.getElementById("clear-checked");
 
 let items = [];
 
+// 예전 버전에서 localStorage에 저장된 목록이 있으면 DB로 한 번 옮기고 지움
+const LEGACY_STORAGE_KEY = "shopping-list-items";
+
+async function migrateLocalItems() {
+  let saved;
+  try {
+    saved = JSON.parse(localStorage.getItem(LEGACY_STORAGE_KEY));
+  } catch {
+    return;
+  }
+  if (!Array.isArray(saved) || !saved.length) return;
+
+  const rows = saved
+    .filter((item) => typeof item.name === "string" && item.name.trim())
+    .map((item) => ({ name: item.name.trim().slice(0, 100), checked: Boolean(item.checked) }));
+  const { error } = rows.length ? await db.from(TABLE).insert(rows) : { error: null };
+  if (error) {
+    console.error(error);
+    return;
+  }
+  try {
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    // 삭제 실패 시 다음 실행 때 중복 저장될 수 있으나 화면 동작은 유지
+  }
+}
+
 // DB에서 목록을 불러옴 (생성 순서대로)
 async function loadItems() {
   const { data, error } = await db
@@ -124,4 +151,4 @@ clearCheckedButton.addEventListener("click", async () => {
 });
 
 render();
-loadItems();
+migrateLocalItems().then(loadItems);
