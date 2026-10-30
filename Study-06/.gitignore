@@ -1,0 +1,5 @@
+# 작성일시: 2026-10-30 15:05
+# Vercel CLI 프로젝트 연결 정보
+.vercel
+# Playwright MCP 테스트 로그
+.playwright-mcp
