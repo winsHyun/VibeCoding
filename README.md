@@ -17,6 +17,7 @@ Claude Code와 대화하며 **PRD(제품 요구사항 문서)를 먼저 쓰고**
 ![OpenRouter](https://img.shields.io/badge/OpenRouter-6566F1?style=for-the-badge&logo=openai&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?style=for-the-badge&logo=supabase&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+![Kakao Map](https://img.shields.io/badge/Kakao_Map-FFCD00?style=for-the-badge&logo=kakao&logoColor=black)
 
 </div>
 
@@ -34,6 +35,7 @@ Claude Code와 대화하며 **PRD(제품 요구사항 문서)를 먼저 쓰고**
 | 05 | [📔 공감 AI 다이어리](#-study-05--공감-ai-다이어리) | 한 줄 일기의 감정을 분석하고 공감 답장 | Express · OpenRouter |
 | 05+ | [📄 PDF 한눈 요약](#-study-05-pdf--pdf-한눈-요약) | PDF를 올리면 한 줄 요약·요점·키워드를 한국어로 정리 | unpdf · OpenRouter rerank |
 | 06 | [🛒 쇼핑 리스트](#-study-06--쇼핑-리스트-supabase--vercel) | Supabase DB에 저장하고 Vercel로 배포한 쇼핑 목록 | Supabase · Vercel |
+| 07 | [🥐 대전 빵지순례](#-study-07--대전-빵지순례) | 대전 빵집 120곳 지도·코스 + 실시간 현장 줄 상황 제보 | Kakao Map · Supabase Realtime · Vercel |
 
 ---
 
@@ -266,29 +268,62 @@ npx vercel deploy --prod   # Vercel로 다시 배포
 
 ---
 
+## 🥐 Study-07 · 대전 빵지순례
+
+> 대전의 유명 빵집 **120곳**을 지도와 추천 코스로 둘러보고, 빵집 앞에 있는 사람이 **지금 줄이 얼마나 긴지** 올리면 다른 사람이 **실시간으로** 확인하는 서비스입니다.
+
+**🌐 배포 주소: https://daejeon-bread-study07.vercel.app**
+
+<p align="center">
+  <img src="Study-07/screenshot01.png" alt="대전 빵지순례 - 첫 화면" width="40%">
+  <img src="Study-07/screenshot02.png" alt="대전 빵지순례 - 빵지순례 지도" width="40%">
+</p>
+
+**주요 기능**
+- 🍞 **빵집 120곳** — 대전시 「빵산책 in 대전」 시민추천 빵집 100곳 + 성심당 등 언론·리뷰에 소개된 빵집, 모두 출처·확인일 표시
+- 🗺️ **빵지순례 지도** — 카카오맵 위에 대표 메뉴로 나눈 빵 종류 8가지별 색 핀, 종류·출처·"지금 제보 있는 곳" 필터
+- 🚶 **추천 코스 6개** — 대전역 원도심 도보, 성심당 집중, 갈마동 소금빵 등 (구간 이동 시간은 직선거리로 추정)
+- 📣 **실시간 현장 상황** — 빵집 **300m 안에서만** 대기 수준(바로 입장~30분 이상)·줄 인원·품절 메뉴·한마디를 올리면 새로고침 없이 모두의 화면에 반영
+- 🛡️ 로그인 없이 기기·IP 해시로 도배 방지(같은 빵집 10분 1건), 서로 다른 3명이 신고하면 자동 숨김, 위치 좌표는 저장하지 않음
+- 🔥 **요즘 핫한 빵집** — 최근 7일 조회 수 + 제보 수로 순위
+- 📷 대표 사진은 **카카오 이미지 검색 API** 썸네일 + 원본 글 출처 링크 (엉뚱한 사진 36곳은 직접 골라 교체)
+- ⭐ 별 장식과 구별 자체 캐릭터 5종(기관사 소금빵·딸기 케이크·화가 크루아상·온천 에그타르트·등산 머핀) — 공식 캐릭터(꿈돌이)는 저작권 때문에 쓰지 않음
+
+**🤖 MCP로 개발** — **Supabase MCP**로 테이블·RLS·RPC 함수·Realtime을 만들고, **Playwright MCP**로 위치를 흉내 내 제보·실시간 반영을 시험했습니다. 빵집 좌표는 카카오 장소 검색으로 확인했습니다.
+
+```bash
+cd Study-07
+npx serve -l 5173 .        # → http://localhost:5173 (ES 모듈이라 file://로는 안 열림)
+npx vercel deploy --prod   # Vercel로 배포
+```
+
+---
+
 ## 🧰 기술 스택 정리
 
 ### 프로젝트별 한눈에 보기
 
-| 구분 | 01 숫자 인식 | 02 Todo | 03 퀴즈 | 03+ 퀴즈 고급 | 04 냉장고 | 05 다이어리 | 06 쇼핑 |
-|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| HTML / CSS / JavaScript | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 빌드 도구 없는 순수 프런트엔드 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| `localStorage` | | ✅ | | ✅ | ✅ | | |
-| Node.js | ✅ | | | | ✅ | ✅ | |
-| Express 5 | | | | | ✅ | ✅ | |
-| TensorFlow.js (CNN) | ✅ | | | | | | |
-| Electron (데스크톱) | ✅ | | | | | | |
-| sharp (이미지 처리) | | | | | ✅ | | |
-| OpenRouter API (LLM) | | | | | ✅ | ✅ | |
-| JSON 파일 저장소 | | | | | ✅ | ✅ | |
-| Supabase (PostgreSQL · RLS) | | | | | | | ✅ |
-| Vercel 배포 | | | | | | | ✅ |
-| 테스트 (`node --test` 등) | | | | ✅ | ✅ | ✅ | |
-| PDF 텍스트 추출 (unpdf) | | | | | | ✅ | |
-| Claude Code 커스텀 명령 | | | | ✅ | | | |
-| Claude Code 서브 에이전트 | | | | | ✅ | ✅ | |
-| Claude Code MCP (Supabase · Playwright) | | | | | | | ✅ |
+| 구분 | 01 숫자 인식 | 02 Todo | 03 퀴즈 | 03+ 퀴즈 고급 | 04 냉장고 | 05 다이어리 | 06 쇼핑 | 07 빵지순례 |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| HTML / CSS / JavaScript | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 빌드 도구 없는 순수 프런트엔드 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `localStorage` | | ✅ | | ✅ | ✅ | | | ✅ |
+| Node.js | ✅ | | | | ✅ | ✅ | | |
+| Express 5 | | | | | ✅ | ✅ | | |
+| TensorFlow.js (CNN) | ✅ | | | | | | | |
+| Electron (데스크톱) | ✅ | | | | | | | |
+| sharp (이미지 처리) | | | | | ✅ | | | |
+| OpenRouter API (LLM) | | | | | ✅ | ✅ | | |
+| JSON 파일 저장소 | | | | | ✅ | ✅ | | |
+| Supabase (PostgreSQL · RLS) | | | | | | | ✅ | ✅ |
+| Vercel 배포 | | | | | | | ✅ | ✅ |
+| 테스트 (`node --test` 등) | | | | ✅ | ✅ | ✅ | | |
+| PDF 텍스트 추출 (unpdf) | | | | | | ✅ | | |
+| Claude Code 커스텀 명령 | | | | ✅ | | | | |
+| Claude Code 서브 에이전트 | | | | | ✅ | ✅ | | |
+| Claude Code MCP (Supabase · Playwright) | | | | | | | ✅ | ✅ |
+| 카카오맵 JS SDK · 카카오 검색 API | | | | | | | | ✅ |
+| Supabase Realtime · RPC 함수 | | | | | | | | ✅ |
 
 ### 분야별 정리
 
@@ -302,8 +337,9 @@ npx vercel deploy --prod   # Vercel로 다시 배포
 | 📄 **문서 처리** | unpdf(PDF.js) — 워커 스레드 텍스트 추출, OpenRouter rerank로 중요 조각 선택 | 05 |
 | 🖼️ **이미지 처리** | sharp — 사진 리사이즈·3×3 조각 분할 | 04 |
 | 💾 **데이터 저장** | `localStorage`, IndexedDB(모델 저장), JSON 파일(원자적 쓰기) | 01, 02, 03+, 04, 05 |
-| 🗄️ **데이터베이스** | Supabase (PostgreSQL, RLS 정책, `supabase-js`) | 06 |
-| 🌐 **배포** | Vercel (정적 사이트, CLI 배포) | 06 |
+| 🗄️ **데이터베이스** | Supabase (PostgreSQL, RLS 정책, `supabase-js`), Realtime 구독, SECURITY DEFINER RPC 함수 | 06, 07 |
+| 🗺️ **지도·위치** | 카카오맵 JS SDK(장소·주소 검색, CustomOverlay), Geolocation API, 카카오 이미지 검색 API | 07 |
+| 🌐 **배포** | Vercel (정적 사이트, CLI 배포) | 06, 07 |
 | 🧪 **테스트** | Node.js 내장 테스트 러너 (`node --test`) | 03+, 04, 05 |
 | 🪟 **실행 스크립트** | Windows 배치 파일 (`.bat`) | 01, 04, 05 |
 | 🛠️ **AI 개발 도구** | Claude Code, `CLAUDE.md`, 커스텀 슬래시 명령, 서브 에이전트, MCP(Supabase · Playwright), PRD 기반 개발 | 전체 |
@@ -322,7 +358,8 @@ VibeCoding/
 │   └── Study-03-basic/      🎯 상식 퀴즈 게임 (고급)
 ├── Study-04/            🥬 냉장고를 부탁해 (AI 레시피 추천)
 ├── Study-05/            📔 공감 AI 다이어리 + 📄 PDF 한눈 요약 (/pdf)
-└── Study-06/            🛒 쇼핑 리스트 (Supabase + Vercel)
+├── Study-06/            🛒 쇼핑 리스트 (Supabase + Vercel)
+└── Study-07/            🥐 대전 빵지순례 (카카오맵 + Supabase Realtime + Vercel)
 ```
 
 <div align="center">
