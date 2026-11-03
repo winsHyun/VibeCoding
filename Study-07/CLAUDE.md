@@ -26,7 +26,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - 대표 이미지 우선순위: `image_url`(직접 찍었거나 사용 허락을 받은 사진) → `photo_thumb_url`(카카오 이미지 검색 API 썸네일) → 메뉴 일러스트. 블로그·카카오맵 원본 사진을 내려받거나 원본 주소로 직접 불러오지 않습니다(저작권·약관).
   - 검색 사진은 `node tools/search-photos.mjs <출력.sql>`(환경 변수 `KAKAO_REST_KEY`, 키는 파일에 저장하지 않음)로 빵집당 최대 4장(`photos` jsonb, 130×130 썸네일 + 원본 글 `doc`·사이트 `site`)을 찾습니다. 화면은 썸네일을 흐린 배경 위 폴라로이드로 보여 주고 출처 링크를 항상 표시합니다.
   - 자동 검색 결과에는 엉뚱한 사진(캐릭터·인물·축제 포스터·글자 이미지)이 섞이므로 반영 뒤 한 화면에 모아 검토하고, 2026-11-03에 36곳을 손으로 골랐습니다(29곳 교체, 7곳은 일러스트로 되돌림). `--all`로 다시 돌리면 이 선택이 덮어써지므로 새로 추가한 빵집만(기본값) 검색합니다. `course_stops.move_min`은 직선거리 × 1.3을 이동 수단별 속도로 나눈 추정값이며(`supabase/migrations/004_m1_course_fixes.sql`), 경유지나 좌표를 바꾸면 같은 식으로 다시 계산합니다.
-- 배포: `npx vercel deploy --prod` (`.vercelignore`가 `tools/`·`supabase/`·문서를 제외). 배포 도메인을 카카오 콘솔의 JavaScript SDK 도메인에 등록해야 지도가 나옵니다.
+- 배포: GitHub 저장소(`winsHyun/VibeCoding`)의 `main`에 푸시하면 Vercel이 자동으로 운영 배포합니다. 프로젝트 Root Directory가 `Study-07`이라 저장소 전체가 아니라 이 폴더만 사이트가 됩니다(이 설정이 없으면 `/`가 404). `.vercelignore`가 `tools/`·`supabase/`·문서를 제외합니다. 수동 배포가 필요하면 `npx vercel redeploy <배포 URL>`을 쓰고, `Study-07`에서 `npx vercel deploy --prod`를 실행하면 Root Directory와 경로가 겹칠 수 있어(검증 안 함) 쓰지 않습니다. 배포 도메인을 카카오 콘솔의 JavaScript SDK 도메인에 등록해야 지도가 나옵니다.
 - `index.html` + `style.css` + `js/` 단일 페이지. 라우팅은 쿼리 문자열(`?bakery=<slug>`, `?course=<slug>`, `?tab=courses|map`, 없으면 빵집 목록)과 `history.pushState`로 하며, 공유 링크가 그대로 해당 화면을 엽니다.
   - `js/app.js`: 라우터와 모든 화면 렌더링. DOM은 `el()` 도우미로 만들고 문자열은 텍스트 노드로만 넣습니다(M2부터 사용자 입력이 들어오므로 `innerHTML` 금지).
   - `js/api.js`: Supabase 읽기. 빵집·코스는 한 번 불러와 메모리에 보관하고, 빵집은 성심당 매장을 먼저 정렬합니다.
