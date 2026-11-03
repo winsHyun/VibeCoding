@@ -7,6 +7,7 @@ import { CATEGORIES, categoryOf, coverSvg } from "./category.js";
 import { mascotNode, MASCOTS } from "./mascot.js";
 import { el, toast, distanceKm } from "./dom.js";
 import { starField, smileStarSvg, starSvg, logoStarSvg } from "./stars.js";
+import { initVisitors, onlinePill, visitorBoard } from "./visitors.js";
 import { initLive, onLiveChange, liveBadge, liveCard, liveBakeries, liveClassFor, liveStatus, deviceId, WAIT_LEVELS, timeAgo } from "./live.js";
 
 const DISTRICTS = ["전체", "동구", "중구", "서구", "유성구", "대덕구"];
@@ -326,6 +327,7 @@ function starFooter() {
     icon,
     el("p", { className: "star-footer-title" }, "빵과 별의 도시, 대전"),
     el("p", { className: "muted small" }, "대전시 시민추천 빵집과 언론·리뷰 자료를 모아 만들었어요. 영업 정보는 방문 전에 확인해 주세요."),
+    visitorBoard(),
     el("div", { className: "maker" },
       el("span", { className: "maker-label" }, "만든이"),
       el("strong", {}, "hyunjo"),
@@ -805,6 +807,23 @@ if (logoIcon) {
   logoIcon.classList.add("logo-star-char");
 }
 
+// 헤더 접속자 알약: 누르면 첫 화면 꼬리말의 방문자 판으로 이동
+const scrollToVisitors = () => {
+  const go = () => document.getElementById("visitors")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (document.getElementById("visitors")) return go();
+  navigate({});
+  // 첫 화면은 빵집 목록을 불러온 뒤 그려지므로 판이 생길 때까지 잠깐 기다림
+  const started = Date.now();
+  const wait = setInterval(() => {
+    if (document.getElementById("visitors") || Date.now() - started > 5000) {
+      clearInterval(wait);
+      go();
+    }
+  }, 100);
+};
+document.querySelector(".app-header")?.append(onlinePill(scrollToVisitors));
+
 window.addEventListener("popstate", render);
 initLive();
+initVisitors(deviceId());
 render();

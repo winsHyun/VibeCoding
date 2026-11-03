@@ -86,6 +86,26 @@ export async function fetchHotBakeries(limit = 10) {
   return data;
 }
 
+// 사이트 방문 기록(기기당 하루 1회) 후 { total, today, yesterday } 집계를 돌려줌
+export async function recordVisit(device) {
+  const { data, error } = await db.rpc("record_visit", { p_device: device });
+  if (error) throw error;
+  const row = data?.[0] ?? {};
+  return { total: Number(row.total ?? 0), today: Number(row.today ?? 0), yesterday: Number(row.yesterday ?? 0) };
+}
+
+// 현재 접속자: Realtime Presence에 기기 ID로 참여하고, 접속 기기 수가 바뀔 때마다 onCount 호출
+// 같은 기기의 여러 탭은 한 명으로 셈
+export function joinPresence(key, onCount) {
+  const channel = db.channel("site-presence", { config: { presence: { key } } });
+  channel
+    .on("presence", { event: "sync" }, () => onCount(Object.keys(channel.presenceState()).length))
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") channel.track({ at: Date.now() });
+    });
+  return channel;
+}
+
 // 새 제보 실시간 구독. onStatus로 연결 상태(SUBSCRIBED, CHANNEL_ERROR 등)를 알려 줌
 export function subscribeReports(onInsert, onStatus) {
   return db

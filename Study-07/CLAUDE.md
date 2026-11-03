@@ -40,6 +40,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - **소개 카드**(`introScene`·`statBox`·`countUp`): 구별 캐릭터 5명이 언덕길에서 폴짝폴짝 행진하고(`hop`·`parade-walk`), 빵 말풍선이 떠오르며, 카드 모서리 점선 궤도를 별이 돕니다. 제목 형광펜·숫자 올라가기·버튼 빛 효과가 있고, `prefers-reduced-motion`이면 모두 멈춥니다. `introScene`은 궤도와 장면 두 요소를 배열로 돌려줍니다(`el`이 펼침).
   - **첫 화면 "지금 현장" 소식판**(`liveTicker`, 소개 카드 바로 아래): 최근 90분 제보가 있는 빵집을 최신순으로 한 줄씩(4곳, 나머지는 "더 보기"), 줄을 누르면 상세로 이동. 화면을 연 뒤 들어온 제보는 `is-new`로 반짝입니다. 소식이 없으면 별과 안내 문구를 보여 줘 자리를 유지합니다. 넓은 화면에서는 2열.
   - **요즘 핫한 빵집**: `record_view`(상세 진입 시, 기기당 하루 1회)와 `hot_bakeries`(최근 7일 조회 + 제보×3, 집계만 공개)로 첫 화면에 순위를 보여 줍니다.
+  - **방문자 수**(`js/visitors.js`, `010_site_visits.sql`): 앱 시작 때 `record_visit`(기기당 하루 1회, 한국 시간)이 기록하고 누적·오늘·어제를 돌려줍니다. 일별 집계는 `site_visit_daily`에, 중복 확인용 기기 해시(`site_visits`)는 어제까지만 남깁니다. 현재 접속자는 Realtime Presence(`site-presence` 채널, 키 = 기기 ID라 여러 탭도 1명)로 셉니다. 헤더 오른쪽 "N명 보는 중" 알약을 누르면 첫 화면 꼬리말 방문자 판으로 이동하며, `data-visitors` 속성 요소는 숫자가 바뀌면 굴러가며 갱신됩니다. 시험 방문은 끝나면 지웁니다.
   - `js/dom.js`: `el`·`toast`·`distanceKm` 공통 도우미. 브라우저 `replaceChildren`은 배열·`false`를 걸러 주지 않으므로 조건부 자식은 `el()`로 감싸거나 `live.js`의 `put`을 씁니다.
   - 지도 탭(`?tab=map`)은 `body.map-mode`로 전체 화면이 되고, 종류·출처 필터와 아래쪽 카드(시트), 자료 출처 안내가 있습니다.
   - `js/config.js`: Supabase URL·publishable 키와 카카오 JS 키(둘 다 브라우저 공개용).
