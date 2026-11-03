@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!-- 작성일시: 2026-11-03 12:30 -->
+<!-- 좌표가 없는 빵집을 카카오 장소 검색으로 찾아 UPDATE SQL을 만드는 개발용 도구 (배포 대상 아님) -->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>빵집 좌표 채우기</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 16px; }
+    table { border-collapse: collapse; width: 100%; font-size: 13px; }
+    td, th { border: 1px solid #ccc; padding: 4px 6px; vertical-align: top; }
+    .warn { background: #fff3cd; }
+    .fail { background: #f8d7da; }
+    textarea { width: 100%; height: 240px; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <h1>빵집 좌표 채우기</h1>
+  <p id="status">준비 중…</p>
+  <table>
+    <thead><tr><th>빵집</th><th>DB 주소</th><th>카카오 결과</th><th>판정</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <h2>UPDATE SQL (판정 OK 행만)</h2>
+  <textarea id="sql" readonly></textarea>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script type="module">
+    import { SUPABASE_URL, SUPABASE_KEY } from "../js/config.js";
+    import { loadKakao } from "../js/kakao.js";
+
+    const status = document.getElementById("status");
+    const rows = document.getElementById("rows");
+    const sqlBox = document.getElementById("sql");
+
+    // 주소 비교용: 공백 제거 후 "도로명 + 건물번호" 부분이 겹치는지 확인
+    const roadPart = (address) => (address.match(/[가-힣0-9]+(로|길)\s*[0-9-]+/g) ?? []).map((s) => s.replace(/\s/g, ""));
+
+    function keywordSearch(places, query) {
+      return new Promise((resolve) => {
+        places.keywordSearch(query, (data, result) => resolve(result === "OK" ? data : []));
+      });
+    }
+
+    const quote = (text) => `'${String(text).replace(/'/g, "''")}'`;
+
+    try {
+      const kakao = await loadKakao();
+      const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      const { data: bakeries, error } = await db.from("bakeries").select("slug, name, address, district").is("lat", null);
+      if (error) throw error;
+
+      const places = new kakao.maps.services.Places();
+      const statements = [];
+      for (const bakery of bakeries) {
+        const candidates = (await keywordSearch(places, `대전 ${bakery.name}`))
+          .filter((p) => p.address_name.startsWith("대전"));
+        const dbRoads = roadPart(bakery.address);
+        // 도로명 주소가 일치하는 후보 우선, 없으면 같은 구의 첫 후보 (검토 필요 표시)
+        const exact = candidates.find((p) => roadPart(p.road_address_name).some((r) => dbRoads.includes(r)));
+        const fallback = candidates.find((p) => p.address_name.includes(bakery.district));
+        const pick = exact ?? fallback;
+
+        const tr = document.createElement("tr");
+        tr.className = exact ? "" : pick ? "warn" : "fail";
+        const verdict = exact ? "OK" : pick ? "검토 필요 (주소 불일치)" : "결과 없음";
+        [bakery.name, bakery.address,
+          pick ? `${pick.place_name} / ${pick.road_address_name || pick.address_name} (${pick.y}, ${pick.x})` : "-",
+          verdict,
+        ].forEach((text) => {
+          const td = document.createElement("td");
+          td.textContent = text;
+          tr.append(td);
+        });
+        rows.append(tr);
+
+        if (exact) {
+          statements.push(
+            `update public.bakeries set lat = ${exact.y}, lng = ${exact.x}, kakao_place_id = ${quote(exact.id)} where slug = ${quote(bakery.slug)};`,
+          );
+        }
+      }
+      sqlBox.value = statements.join("\n");
+      status.textContent = `좌표 없는 빵집 ${bakeries.length}곳 중 ${statements.length}곳 일치`;
+    } catch (error) {
+      status.textContent = `실패: ${error.message} (config.js의 KAKAO_JS_KEY와 카카오 콘솔의 도메인 등록을 확인하세요)`;
+    }
+  </script>
+</body>
+</html>

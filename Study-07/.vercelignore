@@ -1,0 +1,7 @@
+# 작성일시: 2026-11-03 13:10
+# 배포에서 제외할 개발용 파일
+.playwright-mcp
+tools
+supabase
+PRD.md
+CLAUDE.md
